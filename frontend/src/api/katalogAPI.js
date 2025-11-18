@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 
 const supabase = createClient (
-    'https://ispttoyjzbfafmiuhkeu.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlzcHR0b3lqemJmYWZtaXVoa2V1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjMzODIwODksImV4cCI6MjA3ODk1ODA4OX0.4sMQ40ue26fZo_LVO0t2G-lS6qEKgX8SPKoDtqq4uuc'
+    import.meta.env.VITE_SUPABASE_URL, import.meta.env.VITE_SUPABASE_ANON_KEY
 )
 
 const BASE_URL = "http://localhost:3000/api/katalog";
