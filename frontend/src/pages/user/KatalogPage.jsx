@@ -10,16 +10,18 @@ import {
   Star, 
   ChevronLeft, 
   ChevronRight,
-  RefreshCw
+  RefreshCw,
+  Package
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import katalogAPI from '../../api/katalogAPI';
 
 const KatalogPage = () => {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('semua');
   const [priceSort, setPriceSort] = useState('termurah');
-  const [statusFilter, setStatusFilter] = useState('tersedia');
+  const [statusFilter, setStatusFilter] = useState('semua');
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(6);
   const [barangData, setBarangData] = useState([]);
@@ -32,15 +34,10 @@ const KatalogPage = () => {
       setLoading(true);
       setError('');
       
-      const params = {
-        status: 'tersedia' // Hanya tampilkan barang yang tersedia untuk public
-      };
-      
-      if (searchTerm) params.search = searchTerm;
-      if (selectedCategory !== 'semua') params.kategori = selectedCategory;
-      
-      const response = await katalogAPI.getAll(params);
-      setBarangData(response.data);
+      const response = await katalogAPI.getAll();
+      console.log('📦 Data dari API:', response);
+
+      setBarangData(response || []);
     } catch (err) {
       setError(err.message);
       console.error('Error loading data:', err);
@@ -53,22 +50,27 @@ const KatalogPage = () => {
     loadBarangData();
   }, []);
 
-  // Filter dan sort data (client-side untuk real-time filtering)
-  const filteredBarang = barangData
-    .filter(barang => {
-      const matchesSearch = barang.nama.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          barang.deskripsi.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesCategory = selectedCategory === 'semua' || barang.kategori === selectedCategory;
-      
-      return matchesSearch && matchesCategory;
-    })
-    .sort((a, b) => {
-      if (priceSort === 'termurah') {
-        return a.harga - b.harga;
-      } else {
-        return b.harga - a.harga;
-      }
-    });
+  // Filter dan sort data
+  const filteredBarang = Array.isArray(barangData) 
+    ? barangData
+        .filter(barang => {
+          if (!barang) return false;
+          
+          const matchesSearch = barang.nama?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                             barang.deskripsi?.toLowerCase().includes(searchTerm.toLowerCase());
+          const matchesCategory = selectedCategory === 'semua' || barang.kategori === selectedCategory;
+          const matchesStatus = statusFilter === 'semua' || barang.status === statusFilter;
+          
+          return matchesSearch && matchesCategory && matchesStatus;
+        })
+        .sort((a, b) => {
+          if (priceSort === 'termurah') {
+            return a.harga - b.harga;
+          } else {
+            return b.harga - a.harga;
+          }
+        })
+    : [];
 
   // Pagination
   const totalPages = Math.ceil(filteredBarang.length / itemsPerPage);
@@ -76,27 +78,60 @@ const KatalogPage = () => {
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
   const currentItems = filteredBarang.slice(indexOfFirstItem, indexOfLastItem);
 
-  // Reset to page 1 when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, selectedCategory, priceSort]);
+  }, [searchTerm, selectedCategory, priceSort, statusFilter]);
 
-  const handleShare = (barangId, e) => {
-    e.stopPropagation(); // Mencegah event bubbling ke parent
-    const shareUrl = `${window.location.origin}/katalog/${barangId}`;
-    if (navigator.clipboard) {
-      navigator.clipboard.writeText(shareUrl).then(() => {
-        alert('Link berhasil disalin!');
-      }).catch(() => {
-        prompt('Salin link berikut:', shareUrl);
-      });
-    } else {
-      prompt('Salin link berikut:', shareUrl);
+  // Helper function untuk mendapatkan gambar utama
+  const getGambarUtama = (barang) => {
+    if (!barang.gambar || !Array.isArray(barang.gambar)) return null;
+    if (barang.gambar.length > 0 && typeof barang.gambar[0] === 'string') {
+      return barang.gambar[0];
     }
+    return null;
+  };
+
+  const toKebabCase = (text) => {
+  return text
+    .toLowerCase()
+    .replace(/[^\w\s-]/g, '') // Hapus karakter khusus
+    .replace(/[\s_-]+/g, '-') // Ganti spasi dan underscore dengan dash
+    .replace(/^-+|-+$/g, ''); // Hapus dash di awal dan akhir
+  };
+
+  const handleShare = async (barang, e) => {
+  e.stopPropagation();
+  try {
+    const baseUrl = window.location.origin;
+    const barangSlug = toKebabCase(barang.nama);
+    const shareUrl = `${baseUrl}/barang/${barangSlug}`;
+    const shareData = {
+      title: `Pinjam ${barang.nama} - Racana Diponegoro`,
+      text: `Lihat ${barang.nama} untuk dipinjam di Racana Diponegoro. ${barang.deskripsi?.substring(0, 100)}...`,
+      url: shareUrl
+    };
+
+    // Cek apakah Web Share API didukung
+    if (navigator.share) {
+      await navigator.share(shareData);
+    } else {
+      // Fallback: salin ke clipboard
+      await navigator.clipboard.writeText(shareUrl);
+      alert('Link berhasil disalin ke clipboard!');
+    }
+  } catch (err) {
+    console.error('Error sharing:', err);
+    // Fallback manual jika semua gagal
+    const baseUrl = window.location.origin;
+    const barangSlug = toKebabCase(barang.nama);
+    const shareUrl = `${baseUrl}/barang/${barangSlug}`;
+    
+    prompt('Salin link berikut:', shareUrl);
+  }
   };
 
   const handlePinjam = (barangId, e) => {
-    e.stopPropagation(); // Mencegah event bubbling ke parent
+    e.stopPropagation();
     navigate(`/pinjam/${barangId}`);
   };
 
@@ -117,6 +152,7 @@ const KatalogPage = () => {
     setSearchTerm('');
     setSelectedCategory('semua');
     setPriceSort('termurah');
+    setStatusFilter('semua');
     setCurrentPage(1);
     loadBarangData();
   };
@@ -178,7 +214,7 @@ const KatalogPage = () => {
         {/* Search and Filter Section */}
         <div className="bg-white rounded-2xl shadow-lg p-6 mb-8">
           <form onSubmit={handleSearch}>
-            <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
               
               {/* Search Bar */}
               <div className="lg:col-span-2">
@@ -204,6 +240,19 @@ const KatalogPage = () => {
                   <option value="semua">Semua Kategori</option>
                   <option value="outdoor">Outdoor</option>
                   <option value="indoor">Indoor</option>
+                </select>
+              </div>
+
+              {/* Status Filter */}
+              <div>
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                  className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+                >
+                  <option value="semua">Semua Status</option>
+                  <option value="tersedia">Tersedia</option>
+                  <option value="tidak_tersedia">Tidak Tersedia</option>
                 </select>
               </div>
 
@@ -292,102 +341,134 @@ const KatalogPage = () => {
         {!loading && (
           <>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-              {currentItems.map((barang) => (
-                <div
-                  key={barang._id}
-                  className="bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 border border-slate-100 overflow-hidden group cursor-pointer"
-                  onClick={() => handleDetail(barang._id)}
-                >
-                  {/* Image */}
-                  <div className="relative overflow-hidden">
-                    <img
-                      src={barang.gambar && barang.gambar.length > 0 ? 
-                           `http://localhost:5000${barang.gambar[0].url}` : 
-                           '/placeholder-image.jpg'}
-                      alt={barang.nama}
-                      className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
-                    />
-                    {/* Status Badge */}
-                    <div className="absolute top-4 right-4">
-                      <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(barang.status)}`}>
-                        {getStatusText(barang.status)}
-                      </span>
-                    </div>
-                    {/* Rating Badge */}
-                    <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-sm rounded-full px-3 py-1 flex items-center space-x-1">
-                      <Star className="w-4 h-4 text-yellow-500 fill-current" />
-                      <span className="text-sm font-semibold text-slate-700">{barang.rating}</span>
-                    </div>
-                  </div>
-
-                  {/* Content */}
-                  <div className="p-6">
-                    {/* Title and Category */}
-                    <div className="mb-3">
-                      <span className="inline-block px-2 py-1 bg-blue-100 text-blue-600 text-xs font-medium rounded-full mb-2">
-                        {barang.kategori.toUpperCase()}
-                      </span>
-                      <h3 className="text-xl font-bold text-slate-800 line-clamp-1 hover:text-blue-600 transition-colors duration-300">
-                        {barang.nama}
-                      </h3>
-                    </div>
-
-                    {/* Description */}
-                    <p className="text-slate-600 text-sm mb-4 line-clamp-2">
-                      {barang.deskripsi}
-                    </p>
-
-                    {/* Stats */}
-                    <div className="grid grid-cols-2 gap-3 mb-4">
-                      <div className="flex items-center space-x-2 text-sm text-slate-600">
-                        <Users className="w-4 h-4 text-blue-500" />
-                        <span>{barang.totalDipinjam}x dipinjam</span>
-                      </div>
-                      <div className="flex items-center space-x-2 text-sm text-slate-600">
-                        <Calendar className="w-4 h-4 text-orange-500" />
-                        <span>Maks {barang.maksPeminjaman}</span>
-                      </div>
-                      <div className="flex items-center space-x-2 text-sm text-slate-600">
-                        <MapPin className="w-4 h-4 text-green-500" />
-                        <span>{barang.lokasi}</span>
-                      </div>
-                      <div className="flex items-center space-x-2 text-sm text-slate-600">
-                        <span className={`px-2 py-1 rounded-full text-xs ${getKualitasColor(barang.kualitas)}`}>
-                          {barang.kualitas}
+              {currentItems.map((barang) => {
+                const gambarUtama = getGambarUtama(barang);
+                const isTersedia = barang.status === 'tersedia';
+                
+                return (
+                  <div
+                    key={barang.id}
+                    className={`bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 border border-slate-100 overflow-hidden group cursor-pointer ${
+                      !isTersedia ? 'opacity-90' : ''
+                    }`}
+                    onClick={() => handleDetail(barang.id)}
+                  >
+                    {/* Image - Tetap ditampilkan walaupun tidak tersedia */}
+                    <div className="relative overflow-hidden">
+                      {gambarUtama ? (
+                        <img
+                          src={gambarUtama}
+                          alt={barang.nama}
+                          className={`w-full h-48 object-cover transition-transform duration-300 ${
+                            isTersedia ? 'group-hover:scale-105' : 'grayscale'
+                          }`}
+                          onError={(e) => {
+                            console.error('Error loading image:', gambarUtama);
+                            e.target.src = '/images';
+                          }}
+                        />
+                      ) : (
+                        <div className="w-full h-48 bg-gray-200 flex items-center justify-center">
+                          <Package className="w-12 h-12 text-gray-400" />
+                        </div>
+                      )}
+                      
+                      {/* Status Badge */}
+                      <div className="absolute top-4 right-4">
+                        <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(barang.status)}`}>
+                          {getStatusText(barang.status)}
                         </span>
                       </div>
+                      
+                      {/* Overlay untuk barang tidak tersedia - lebih transparan */}
+                      {!isTersedia && (
+                        <div className="absolute inset-0 bg-black bg-opacity-20 flex items-center justify-center">
+                          <div className="bg-white bg-opacity-95 rounded-full px-4 py-2 shadow-lg">
+                            <span className="text-sm font-semibold text-red-600 flex items-center space-x-1">
+                              <Calendar className="w-4 h-4" />
+                              <span>Sedang Dipinjam</span>
+                            </span>
+                          </div>
+                        </div>
+                      )}
                     </div>
 
-                    {/* Price and Actions */}
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <span className="text-2xl font-bold text-slate-800">{formatRupiah(barang.harga)}</span>
-                        <span className="text-slate-500 text-sm block">/hari</span>
+                    {/* Content */}
+                    <div className="p-6">
+                      {/* Title and Category */}
+                      <div className="mb-3">
+                        <span className="inline-block px-2 py-1 bg-blue-100 text-blue-600 text-xs font-medium rounded-full mb-2">
+                          {barang.kategori?.toUpperCase() || 'INDOOR'}
+                        </span>
+                        <h3 className={`text-xl font-bold line-clamp-1 transition-colors duration-300 ${
+                          isTersedia 
+                            ? 'text-slate-800 hover:text-blue-600' 
+                            : 'text-slate-600'
+                        }`}>
+                          {barang.nama}
+                        </h3>
                       </div>
-                      <div className="flex space-x-2">
-                        <button
-                          onClick={(e) => handleShare(barang._id, e)}
-                          className="p-2 bg-slate-100 text-slate-600 rounded-lg hover:bg-slate-200 transition-all duration-300 hover:scale-105"
-                          title="Bagikan"
-                        >
-                          <Share2 className="w-5 h-5" />
-                        </button>
-                        <button
-                          onClick={(e) => handlePinjam(barang._id, e)}
-                          disabled={barang.status !== 'tersedia'}
-                          className={`px-4 py-2 rounded-lg font-semibold transition-all duration-300 ${
-                            barang.status === 'tersedia'
-                              ? 'bg-blue-600 text-white hover:bg-blue-700 hover:scale-105'
-                              : 'bg-slate-200 text-slate-500 cursor-not-allowed'
-                          }`}
-                        >
-                          {barang.status === 'tersedia' ? 'Pinjam' : 'Dipinjam'}
-                        </button>
+
+                      {/* Description */}
+                      <p className="text-slate-600 text-sm mb-4 line-clamp-2">
+                        {barang.deskripsi}
+                      </p>
+
+                      {/* Stats */}
+                      <div className="grid grid-cols-2 gap-3 mb-4">
+                        <div className="flex items-center space-x-2 text-sm text-slate-600">
+                          <Calendar className="w-4 h-4 text-orange-500" />
+                          <span>Maks {barang.maks_peminjaman}</span>
+                        </div>
+                        <div className="text-sm text-gray-600">
+                          <span className="font-semibold">Stok:</span> {barang.stok}
+                        </div>
+                        <div className="flex items-center space-x-2 text-sm text-slate-600">
+                          <MapPin className="w-4 h-4 text-green-500" />
+                          <span>{barang.lokasi}</span>
+                        </div>
+                        <div className="flex items-center space-x-2 text-sm text-slate-600">
+                          <span className={`px-2 py-1 rounded-full text-xs ${getKualitasColor(barang.kualitas)}`}>
+                            {barang.kualitas}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Price and Actions */}
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <span className={`text-2xl font-bold ${
+                            isTersedia ? 'text-slate-800' : 'text-slate-500'
+                          }`}>
+                            {formatRupiah(barang.harga)}
+                          </span>
+                          <span className="text-slate-500 text-sm block">/hari</span>
+                        </div>
+                        <div className="flex space-x-2">
+                          <button
+                            onClick={(e) => handleShare(barang, e)}
+                            className="p-2 bg-slate-100 text-slate-600 rounded-lg hover:bg-slate-200 transition-all duration-300 hover:scale-105"
+                            title="Bagikan"
+                          >
+                            <Share2 className="w-5 h-5" />
+                          </button>
+                          <button
+                            onClick={(e) => handlePinjam(barang.id, e)}
+                            disabled={!isTersedia}
+                            className={`px-4 py-2 rounded-lg font-semibold transition-all duration-300 ${
+                              isTersedia
+                                ? 'bg-blue-600 text-white hover:bg-blue-700 hover:scale-105'
+                                : 'bg-slate-200 text-slate-500 cursor-not-allowed'
+                            }`}
+                          >
+                            {isTersedia ? 'Pinjam' : 'Tidak Tersedia'}
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
 
             {/* No Results */}
@@ -414,6 +495,7 @@ const KatalogPage = () => {
               <div className="flex items-center justify-between bg-white rounded-2xl shadow-lg p-6">
                 <div className="text-slate-600 text-sm">
                   Menampilkan {indexOfFirstItem + 1}-{Math.min(indexOfLastItem, filteredBarang.length)} dari {filteredBarang.length} barang
+                  <span className="text-slate-400 ml-2">(6 barang per halaman)</span>
                 </div>
                 
                 <div className="flex items-center space-x-2">
@@ -427,13 +509,11 @@ const KatalogPage = () => {
 
                   {Array.from({ length: totalPages }, (_, i) => i + 1)
                     .filter(page => {
-                      // Show first page, last page, and pages around current page
                       if (page === 1 || page === totalPages) return true;
                       if (page >= currentPage - 1 && page <= currentPage + 1) return true;
                       return false;
                     })
                     .map((page, index, array) => {
-                      // Add ellipsis for gaps in pagination
                       const showEllipsis = index > 0 && page - array[index - 1] > 1;
                       return (
                         <React.Fragment key={page}>
@@ -465,40 +545,6 @@ const KatalogPage = () => {
               </div>
             )}
           </>
-        )}
-
-        {/* Info Section */}
-        {!loading && currentItems.length > 0 && (
-          <div className="mt-8 bg-blue-50 rounded-2xl p-6 border border-blue-200">
-            <div className="text-center">
-              <h3 className="text-lg font-semibold text-blue-800 mb-2">
-                Butuh bantuan memilih barang?
-              </h3>
-              <p className="text-blue-600 mb-4">
-                Hubungi admin Racana untuk konsultasi pemilihan barang yang tepat untuk kebutuhan Anda
-              </p>
-              <div className="flex justify-center space-x-4">
-                <div className="text-center">
-                  <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-2">
-                    <MapPin className="w-6 h-6 text-blue-600" />
-                  </div>
-                  <p className="text-sm text-blue-700">Gudang Utama</p>
-                </div>
-                <div className="text-center">
-                  <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-2">
-                    <Calendar className="w-6 h-6 text-blue-600" />
-                  </div>
-                  <p className="text-sm text-blue-700">Flexible</p>
-                </div>
-                <div className="text-center">
-                  <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-2">
-                    <Users className="w-6 h-6 text-blue-600" />
-                  </div>
-                  <p className="text-sm text-blue-700">Support 24/7</p>
-                </div>
-              </div>
-            </div>
-          </div>
         )}
       </div>
     </div>

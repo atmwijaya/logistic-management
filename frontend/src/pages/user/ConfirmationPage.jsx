@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { ArrowLeft, Calendar, Users, MapPin, Package, MessageCircle, CheckCircle, Star, Home, Check, RefreshCw } from 'lucide-react';
+import katalogAPI from '../../api/katalogAPI';
 
 const ConfirmationPage = () => {
   const { id } = useParams();
@@ -30,9 +31,18 @@ const ConfirmationPage = () => {
         setError('');
         
         const response = await katalogAPI.getById(id);
-        setSelectedBarang(response.data);
+        console.log('📦 Barang detail response:', response); // Debug log
+        
+        // Handle berbagai kemungkinan struktur response
+        const barang = response.data || response;
+        
+        if (!barang) {
+          throw new Error('Data barang tidak ditemukan');
+        }
+
+        setSelectedBarang(barang);
       } catch (err) {
-        setError(err.message);
+        setError(err.message || 'Terjadi kesalahan saat memuat data barang');
         console.error('Error loading barang detail:', err);
       } finally {
         setLoading(false);
@@ -125,6 +135,33 @@ const ConfirmationPage = () => {
 
   // Set tanggal minimum (hari ini)
   const today = new Date().toISOString().split('T')[0];
+
+  // Get image URL - sesuaikan dengan struktur data
+  const getImageUrl = () => {
+    if (!selectedBarang || !selectedBarang.gambar) {
+      return '/placeholder-image.jpg';
+    }
+
+    // Handle berbagai kemungkinan struktur gambar
+    if (Array.isArray(selectedBarang.gambar) && selectedBarang.gambar.length > 0) {
+      const firstImage = selectedBarang.gambar[0];
+      
+      // Jika gambar adalah object dengan property url
+      if (typeof firstImage === 'object' && firstImage.url) {
+        return firstImage.url;
+      }
+      // Jika gambar adalah string URL langsung
+      else if (typeof firstImage === 'string') {
+        return firstImage;
+      }
+    }
+    // Jika gambar adalah string tunggal
+    else if (typeof selectedBarang.gambar === 'string') {
+      return selectedBarang.gambar;
+    }
+
+    return '/placeholder-image.jpg';
+  };
 
   // Loading state
   if (loading) {
@@ -267,12 +304,12 @@ const ConfirmationPage = () => {
             {/* Product Image */}
             <div className="lg:w-1/3">
               <img
-                src={selectedBarang.gambar && selectedBarang.gambar.length > 0 
-                  ? `http://localhost:5000${selectedBarang.gambar[0].url}`
-                  : '/placeholder-image.jpg'
-                }
+                src={getImageUrl()}
                 alt={selectedBarang.nama}
                 className="w-full h-64 object-cover rounded-xl"
+                onError={(e) => {
+                  e.target.src = '/placeholder-image.jpg';
+                }}
               />
             </div>
 
@@ -281,19 +318,11 @@ const ConfirmationPage = () => {
               <div className="flex items-start justify-between mb-4">
                 <div>
                   <span className="inline-block px-3 py-1 bg-blue-100 text-blue-600 text-sm font-medium rounded-full mb-3">
-                    {selectedBarang.kategori.toUpperCase()}
+                    {selectedBarang.kategori?.toUpperCase() || 'OUTDOOR'}
                   </span>
                   <h1 className="text-2xl font-bold text-slate-800 mb-2">
                     {selectedBarang.nama}
                   </h1>
-                  <div className="flex items-center space-x-4 mb-4">
-                    <div className="flex items-center space-x-1">
-                      <Star className="w-5 h-5 text-yellow-500 fill-current" />
-                      <span className="font-semibold text-slate-800">{selectedBarang.rating || 4.5}</span>
-                    </div>
-                    <span className="text-slate-500">•</span>
-                    <span className="text-slate-600">{selectedBarang.totalDipinjam || 0}x dipinjam</span>
-                  </div>
                 </div>
               </div>
 
@@ -305,25 +334,25 @@ const ConfirmationPage = () => {
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
                 <div className="text-center">
                   <div className="text-2xl font-bold text-blue-600 mb-1">
-                    Rp {selectedBarang.harga.toLocaleString('id-ID')}
+                    Rp {selectedBarang.harga?.toLocaleString('id-ID') || '0'}
                   </div>
                   <div className="text-sm text-slate-500">per hari</div>
                 </div>
                 <div className="text-center">
                   <div className="text-2xl font-bold text-green-600 mb-1">
-                    {selectedBarang.stok}
+                    {selectedBarang.stok || 0}
                   </div>
                   <div className="text-sm text-slate-500">stok tersedia</div>
                 </div>
                 <div className="text-center">
                   <div className="text-xl font-bold text-orange-600 mb-1">
-                    {selectedBarang.maksPeminjaman}
+                    {selectedBarang.maks_peminjaman || selectedBarang.maksPeminjaman || '-'}
                   </div>
                   <div className="text-sm text-slate-500">maksimal</div>
                 </div>
                 <div className="text-center">
                   <div className="text-lg font-bold text-purple-600 mb-1">
-                    {selectedBarang.lokasi}
+                    {selectedBarang.lokasi || 'Gudang Utama'}
                   </div>
                   <div className="text-sm text-slate-500">lokasi</div>
                 </div>
@@ -336,7 +365,7 @@ const ConfirmationPage = () => {
                   <div className="flex justify-between">
                     <span className="text-slate-600">Harga per hari</span>
                     <span className="text-slate-800">
-                      Rp {selectedBarang.harga.toLocaleString('id-ID')}
+                      Rp {selectedBarang.harga?.toLocaleString('id-ID') || '0'}
                     </span>
                   </div>
                   <div className="flex justify-between">
@@ -456,7 +485,7 @@ const ConfirmationPage = () => {
                     required
                     className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
-                    {[...Array(selectedBarang.stok)].map((_, i) => (
+                    {[...Array(Math.min(selectedBarang.stok || 1, 10))].map((_, i) => (
                       <option key={i + 1} value={i + 1}>
                         {i + 1} unit
                       </option>
@@ -546,7 +575,7 @@ const ConfirmationPage = () => {
             </li>
             <li className="flex items-start space-x-2">
               <span className="text-blue-500 mt-0.5">•</span>
-              <span>Pengambilan barang di {selectedBarang.lokasi}</span>
+              <span>Pengambilan barang di {selectedBarang.lokasi || 'Gudang Utama'}</span>
             </li>
             <li className="flex items-start space-x-2">
               <span className="text-blue-500 mt-0.5">•</span>

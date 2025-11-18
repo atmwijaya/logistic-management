@@ -3,7 +3,9 @@ import { Routes, Route } from 'react-router-dom';
 import Navbar from '../components/navbar/userNavbar';
 import Footer from '../components/footer/userFooter';
 import HomePage from '../pages/user/HomePage';
-
+import KatalogPage from '../pages/user/KatalogPage';
+import DetailPage from '../pages/user/DetailPage';
+import ConfirmationPage from '../pages/user/ConfirmationPage'
 
 // Komponen untuk halaman 404
 const NotFound = () => {
@@ -41,6 +43,9 @@ const UserLayout = () => {
       <main>
         <Routes>
           <Route path="/" element={<HomePage />} />
+          <Route path="/katalog" element={<KatalogPage />} />
+          <Route path="/katalog/:id" element={<DetailPage />} />
+          <Route path="/pinjam/:id" element={<ConfirmationPage />} />
           
           {/* Fallback route untuk 404 */}
           <Route path="*" element={<NotFound />} />

@@ -12,9 +12,12 @@ import {
   Eye,
   EyeOff,
   MoreVertical,
-  RefreshCw
+  RefreshCw,
+  ToggleLeft,
+  ToggleRight
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import katalogAPI from '../../api/katalogAPI';
 
 const KatalogAdminPage = () => {
   const navigate = useNavigate();
@@ -27,6 +30,7 @@ const KatalogAdminPage = () => {
   const [barangData, setBarangData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [updatingStatus, setUpdatingStatus] = useState(null);
 
   // Load data dari backend
   const loadBarangData = async () => {
@@ -34,13 +38,11 @@ const KatalogAdminPage = () => {
       setLoading(true);
       setError('');
       
-      const params = {};
-      if (searchTerm) params.search = searchTerm;
-      if (selectedCategory !== 'semua') params.kategori = selectedCategory;
-      if (statusFilter !== 'semua') params.status = statusFilter;
-      
-      const response = await katalogAPI.getAll(params);
-      setBarangData(response.data);
+      const response = await katalogAPI.getAll();
+      console.log('📦 Data dari API:', response);
+
+      // Supabase langsung return array, tidak perlu response.data
+      setBarangData(response || []);
     } catch (err) {
       setError(err.message);
       console.error('Error loading data:', err);
@@ -51,17 +53,21 @@ const KatalogAdminPage = () => {
 
   useEffect(() => {
     loadBarangData();
-  }, [searchTerm, selectedCategory, statusFilter]);
+  }, []);
 
   // Filter barang (client-side untuk real-time filtering)
-  const filteredBarang = barangData.filter(barang => {
-    const matchesSearch = barang.nama.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         barang.deskripsi.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = selectedCategory === 'semua' || barang.kategori === selectedCategory;
-    const matchesStatus = statusFilter === 'semua' || barang.status === statusFilter;
-    
-    return matchesSearch && matchesCategory && matchesStatus;
-  });
+  const filteredBarang = Array.isArray(barangData) 
+    ? barangData.filter(barang => {
+        if (!barang) return false;
+        
+        const matchesSearch = barang.nama?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           barang.deskripsi?.toLowerCase().includes(searchTerm.toLowerCase());
+        const matchesCategory = selectedCategory === 'semua' || barang.kategori === selectedCategory;
+        const matchesStatus = statusFilter === 'semua' || barang.status === statusFilter;
+        
+        return matchesSearch && matchesCategory && matchesStatus;
+      })
+    : [];
 
   const getStatusColor = (status) => {
     return status === 'tersedia' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800';
@@ -88,15 +94,56 @@ const KatalogAdminPage = () => {
     }).format(angka);
   };
 
-  const handleShare = (barangId) => {
-    const shareUrl = `${window.location.origin}/katalog/${barangId}`;
-    navigator.clipboard.writeText(shareUrl).then(() => {
-      alert('Link berhasil disalin!');
-    });
+  // Helper function untuk mendapatkan gambar utama
+  const getGambarUtama = (barang) => {
+    if (!barang.gambar || !Array.isArray(barang.gambar)) return null;
+    if (barang.gambar.length > 0 && typeof barang.gambar[0] === 'string') {
+      return barang.gambar[0];
+    }
+    return null;
+  };
+
+  const toKebabCase = (text) => {
+  return text
+    .toLowerCase()
+    .replace(/[^\w\s-]/g, '') 
+    .replace(/[\s_-]+/g, '-') 
+    .replace(/^-+|-+$/g, ''); 
+  };
+
+  const handleShare = async (barang, e) => {
+  e.stopPropagation();
+  try {
+    const baseUrl = window.location.origin;
+    const barangSlug = toKebabCase(barang.nama);
+    const shareUrl = `${baseUrl}/barang/${barangSlug}`;
+    const shareData = {
+      title: `Pinjam ${barang.nama} - Racana Diponegoro`,
+      text: `Lihat ${barang.nama} untuk dipinjam di Racana Diponegoro. ${barang.deskripsi?.substring(0, 100)}...`,
+      url: shareUrl
+    };
+
+    // Cek apakah Web Share API didukung
+    if (navigator.share) {
+      await navigator.share(shareData);
+    } else {
+      // Fallback: salin ke clipboard
+      await navigator.clipboard.writeText(shareUrl);
+      alert('Link berhasil disalin ke clipboard!');
+    }
+  } catch (err) {
+    console.error('Error sharing:', err);
+    // Fallback manual jika semua gagal
+    const baseUrl = window.location.origin;
+    const barangSlug = toKebabCase(barang.nama);
+    const shareUrl = `${baseUrl}/barang/${barangSlug}`;
+    
+    prompt('Salin link berikut:', shareUrl);
+  }
   };
 
   const handleEdit = (barang) => {
-    navigate(`/admin/editkatalog/${barang._id}`);
+    navigate(`/admin/editkatalog/${barang.id}`);
   };
 
   const handleDelete = (barang) => {
@@ -106,8 +153,8 @@ const KatalogAdminPage = () => {
 
   const confirmDelete = async () => {
     try {
-      await katalogAPI.delete(selectedBarang._id);
-      setBarangData(prev => prev.filter(item => item._id !== selectedBarang._id));
+      await katalogAPI.delete(selectedBarang.id);
+      setBarangData(prev => prev.filter(item => item.id !== selectedBarang.id));
       setShowDeleteModal(false);
       setSelectedBarang(null);
       alert('Barang berhasil dihapus!');
@@ -121,17 +168,26 @@ const KatalogAdminPage = () => {
   };
 
   const handleDetail = (barangId) => {
-    navigate(`/admin/katalog/${barangId}`);
+    navigate(`/admin/detailkatalog/${barangId}`);
   };
 
-  const toggleStatus = async (barangId) => {
+  const toggleStatus = async (barangId, e) => {
+    e.stopPropagation(); // Mencegah event bubbling
+    
     try {
+      setUpdatingStatus(barangId);
       const response = await katalogAPI.toggleStatus(barangId);
+      
+      // Update state dengan data terbaru
       setBarangData(prev => prev.map(item => 
-        item._id === barangId ? response.data : item
+        item.id === barangId ? { ...item, status: response.data.status } : item
       ));
+      
+      alert(`Status berhasil diubah menjadi ${response.data.status === 'tersedia' ? 'Tersedia' : 'Tidak Tersedia'}`);
     } catch (err) {
       alert(err.message);
+    } finally {
+      setUpdatingStatus(null);
     }
   };
 
@@ -267,97 +323,108 @@ const KatalogAdminPage = () => {
         {/* Grid Layout */}
         {layoutMode === 'grid' && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-            {filteredBarang.map((barang) => (
-              <div
-                key={barang._id}
-                className="bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 border border-slate-100 overflow-hidden group cursor-pointer"
-                onClick={() => handleDetail(barang._id)}
-              >
-                {/* Image */}
-                <div className="relative overflow-hidden">
-                  <img
-                    src={barang.gambar && barang.gambar.length > 0 ? 
-                         `http://localhost:5000${barang.gambar[0].url}` : 
-                         '/placeholder-image.jpg'}
-                    alt={barang.nama}
-                    className="w-full h-48 object-cover"
-                  />
-                  {/* Status Badge */}
-                  <div className="absolute top-4 right-4">
-                    <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(barang.status)}`}>
-                      {getStatusText(barang.status)}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Content */}
-                <div className="p-6">
-                  {/* Title and Category */}
-                  <div className="mb-3">
-                    <span className="inline-block px-2 py-1 bg-blue-100 text-blue-600 text-xs font-medium rounded-full mb-2">
-                      {barang.kategori.toUpperCase()}
-                    </span>
-                    <h3 className="text-xl font-bold text-gray-800 line-clamp-1">
-                      {barang.nama}
-                    </h3>
-                  </div>
-
-                  {/* Description */}
-                  <p className="text-gray-600 text-sm mb-4 line-clamp-2">
-                    {barang.deskripsi}
-                  </p>
-
-                  {/* Stats */}
-                  <div className="grid grid-cols-2 gap-3 mb-4">
-                    <div className="text-sm text-gray-600">
-                      <span className="font-semibold">Stok:</span> {barang.stok}
-                    </div>
-                    <div className="text-sm text-gray-600">
-                      <span className="font-semibold">Dipinjam:</span> {barang.totalDipinjam}x
-                    </div>
-                    <div className="text-sm text-gray-600">
-                      <span className="font-semibold">Maks:</span> {barang.maksPeminjaman}
-                    </div>
-                    <div className="text-sm text-gray-600">
-                      <span className={`px-2 py-1 rounded-full text-xs ${getKualitasColor(barang.kualitas)}`}>
-                        {barang.kualitas}
+            {filteredBarang.map((barang) => {
+              const gambarUtama = getGambarUtama(barang);
+              
+              return (
+                <div
+                  key={barang.id}
+                  className="bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 border border-slate-100 overflow-hidden group cursor-pointer"
+                  onClick={() => handleDetail(barang.id)}
+                >
+                  {/* Image */}
+                  <div className="relative overflow-hidden">
+                    {gambarUtama ? (
+                      <img
+                        src={gambarUtama}
+                        alt={barang.nama}
+                        className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
+                        onError={(e) => {
+                          console.error('Error loading image:', gambarUtama);
+                          e.target.src = '/images';
+                        }}
+                      />
+                    ) : (
+                      <div className="w-full h-48 bg-gray-200 flex items-center justify-center">
+                        <Package className="w-12 h-12 text-gray-400" />
+                      </div>
+                    )}
+                    {/* Status Badge */}
+                    <div className="absolute top-4 right-4">
+                      <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(barang.status)}`}>
+                        {getStatusText(barang.status)}
                       </span>
                     </div>
                   </div>
 
-                  {/* Price and Actions */}
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <span className="text-2xl font-bold text-gray-800">{formatRupiah(barang.harga)}</span>
-                      <span className="text-gray-500 text-sm block">/hari</span>
+                  {/* Content */}
+                  <div className="p-6">
+                    {/* Title and Category */}
+                    <div className="mb-3">
+                      <span className="inline-block px-2 py-1 bg-blue-100 text-blue-600 text-xs font-medium rounded-full mb-2">
+                        {barang.kategori?.toUpperCase() || 'INDOOR'}
+                      </span>
+                      <h3 className="text-xl font-bold text-gray-800 line-clamp-1">
+                        {barang.nama}
+                      </h3>
                     </div>
-                    <div className="flex space-x-2">
-                      <button
-                        onClick={() => handleShare(barang._id)}
-                        className="p-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition-all duration-300"
-                        title="Bagikan"
-                      >
-                        <Share2 className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => handleEdit(barang)}
-                        className="p-2 bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200 transition-all duration-300"
-                        title="Edit"
-                      >
-                        <Edit className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => handleDelete(barang)}
-                        className="p-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition-all duration-300"
-                        title="Hapus"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+
+                    {/* Description */}
+                    <p className="text-gray-600 text-sm mb-4 line-clamp-2">
+                      {barang.deskripsi}
+                    </p>
+
+                    {/* Stats */}
+                    <div className="grid grid-cols-2 gap-3 mb-4">
+                      <div className="text-sm text-gray-600">
+                        <span className="font-semibold">Stok:</span> {barang.stok}
+                      </div>
+                      <div className="text-sm text-gray-600">
+                        <span className="font-semibold">Maks:</span> {barang.maks_peminjaman}
+                      </div>
+                      <div className="text-sm text-gray-600">
+                        <span className={`px-2 py-1 rounded-full text-xs ${getKualitasColor(barang.kualitas)}`}>
+                          {barang.kualitas}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Price and Actions */}
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <span className="text-2xl font-bold text-gray-800">
+                          {formatRupiah(barang.harga)}
+                        </span>
+                        <span className="text-gray-500 text-sm block">/hari</span>
+                      </div>
+                      <div className="flex space-x-2" onClick={(e) => e.stopPropagation()}>
+                        <button
+                          onClick={(e) => handleShare(barang, e)}
+                          className="p-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition-all duration-300"
+                          title="Bagikan"
+                        >
+                          <Share2 className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleEdit(barang)}
+                          className="p-2 bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200 transition-all duration-300"
+                          title="Edit"
+                        >
+                          <Edit className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(barang)}
+                          className="p-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition-all duration-300"
+                          title="Hapus"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
 
@@ -376,79 +443,102 @@ const KatalogAdminPage = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
-                {filteredBarang.map((barang) => (
-                  <tr key={barang._id} className="hover:bg-gray-50">
-                    <td className="py-4 px-6">
-                      <div className="flex items-center space-x-4">
-                        <img
-                          src={barang.gambar && barang.gambar.length > 0 ? 
-                               `http://localhost:5000${barang.gambar[0].url}` : 
-                               '/placeholder-image.jpg'}
-                          alt={barang.nama}
-                          className="w-12 h-12 object-cover rounded-lg"
-                        />
-                        <div>
-                          <p className="font-medium text-gray-900">{barang.nama}</p>
-                          <p className="text-sm text-gray-500 line-clamp-1">{barang.deskripsi}</p>
+                {filteredBarang.map((barang) => {
+                  const gambarUtama = getGambarUtama(barang);
+                  
+                  return (
+                    <tr key={barang.id} className="hover:bg-gray-50">
+                      <td className="py-4 px-6">
+                        <div className="flex items-center space-x-4">
+                          {gambarUtama ? (
+                            <img
+                              src={gambarUtama}
+                              alt={barang.nama}
+                              className="w-12 h-12 object-cover rounded-lg"
+                              onError={(e) => {
+                                e.target.src = '/images';
+                              }}
+                            />
+                          ) : (
+                            <div className="w-12 h-12 bg-gray-200 rounded-lg flex items-center justify-center">
+                              <Package className="w-6 h-6 text-gray-400" />
+                            </div>
+                          )}
+                          <div>
+                            <p className="font-medium text-gray-900">{barang.nama}</p>
+                            <p className="text-sm text-gray-500 line-clamp-1">{barang.deskripsi}</p>
+                          </div>
                         </div>
-                      </div>
-                    </td>
-                    <td className="py-4 px-6">
-                      <span className="inline-block px-2 py-1 bg-blue-100 text-blue-600 text-xs font-medium rounded-full">
-                        {barang.kategori.toUpperCase()}
-                      </span>
-                    </td>
-                    <td className="py-4 px-6">
-                      <div className="flex items-center space-x-2">
-                        <button
-                          onClick={() => toggleStatus(barang._id)}
-                          className={`w-8 h-4 rounded-full transition-colors duration-300 ${
-                            barang.status === 'tersedia' ? 'bg-green-500' : 'bg-gray-300'
-                          }`}
-                        >
-                          <div className={`w-3 h-3 bg-white rounded-full transform transition-transform duration-300 ${
-                            barang.status === 'tersedia' ? 'translate-x-4' : 'translate-x-1'
-                          }`}></div>
-                        </button>
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(barang.status)}`}>
-                          {getStatusText(barang.status)}
+                      </td>
+                      <td className="py-4 px-6">
+                        <span className="inline-block px-2 py-1 bg-blue-100 text-blue-600 text-xs font-medium rounded-full">
+                          {barang.kategori?.toUpperCase() || 'INDOOR'}
                         </span>
-                      </div>
-                    </td>
-                    <td className="py-4 px-6">
-                      <span className="font-medium text-gray-900">{barang.stok}</span>
-                    </td>
-                    <td className="py-4 px-6">
-                      <span className="font-semibold text-gray-900">{formatRupiah(barang.harga)}</span>
-                      <span className="text-gray-500 text-sm block">/hari</span>
-                    </td>
-                    <td className="py-4 px-6">
-                      <div className="flex items-center space-x-2">
-                        <button
-                          onClick={() => handleShare(barang._id)}
-                          className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors duration-300"
-                          title="Bagikan"
-                        >
-                          <Share2 className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => handleEdit(barang)}
-                          className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors duration-300"
-                          title="Edit"
-                        >
-                          <Edit className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(barang)}
-                          className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors duration-300"
-                          title="Hapus"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                      </td>
+                      <td className="py-4 px-6">
+                        <div className="flex items-center space-x-3">
+                          {/* Toggle Switch untuk Status */}
+                          <button
+                            onClick={(e) => toggleStatus(barang.id, e)}
+                            disabled={updatingStatus === barang.id}
+                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+                              barang.status === 'tersedia' 
+                                ? 'bg-green-600' 
+                                : 'bg-gray-200'
+                            } ${updatingStatus === barang.id ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                          >
+                            <span
+                              className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-300 ${
+                                barang.status === 'tersedia' 
+                                  ? 'translate-x-6' 
+                                  : 'translate-x-1'
+                              }`}
+                            />
+                          </button>
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(barang.status)}`}>
+                            {updatingStatus === barang.id ? (
+                              <RefreshCw className="w-3 h-3 animate-spin" />
+                            ) : (
+                              getStatusText(barang.status)
+                            )}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="py-4 px-6">
+                        <span className="font-medium text-gray-900">{barang.stok}</span>
+                      </td>
+                      <td className="py-4 px-6">
+                        <span className="font-semibold text-gray-900">{formatRupiah(barang.harga)}</span>
+                        <span className="text-gray-500 text-sm block">/hari</span>
+                      </td>
+                      <td className="py-4 px-6">
+                        <div className="flex items-center space-x-2">
+                          <button
+                            onClick={(e) => handleShare(barang, e)}
+                            className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors duration-300"
+                            title="Bagikan"
+                          >
+                            <Share2 className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleEdit(barang)}
+                            className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors duration-300"
+                            title="Edit"
+                          >
+                            <Edit className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(barang)}
+                            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors duration-300"
+                            title="Hapus"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
 

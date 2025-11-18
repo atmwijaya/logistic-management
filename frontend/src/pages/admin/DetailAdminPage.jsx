@@ -13,11 +13,10 @@ import {
   Clock,
   CheckCircle,
   Truck,
-  Eye,
-  MoreVertical,
   Share2,
   RefreshCw
 } from 'lucide-react';
+import katalogAPI from '../../api/katalogAPI';
 
 const DetailAdminPage = () => {
   const { id } = useParams();
@@ -38,15 +37,15 @@ const DetailAdminPage = () => {
         
         // Load detail barang
         const response = await katalogAPI.getById(id);
-        console.log('Barang Detail Admin:', response.data); // Debug log
-        setBarangDetail(response.data);
+        console.log('Barang Detail Admin:', response); // Debug log
+        setBarangDetail(response);
 
         // Load related barang
-        const relatedResponse = await katalogAPI.getAll({ 
-          kategori: response.data.kategori,
-          limit: 3 
-        });
-        setRelatedBarang(relatedResponse.data.filter(item => item._id !== id));
+        const relatedResponse = await katalogAPI.getAll(); 
+        const filteredRelated = Array.isArray(relatedResponse) 
+          ? relatedResponse.filter(item => item.id !== id && item.kategori === response.kategori).slice(0, 3)
+          : [];
+        setRelatedBarang(filteredRelated);
       } catch (err) {
         setError(err.message);
         console.error('Error loading barang detail:', err);
@@ -60,23 +59,63 @@ const DetailAdminPage = () => {
     }
   }, [id]);
 
-  const handleShare = () => {
-    const shareUrl = `${window.location.origin}/barang/${barangDetail._id}`;
-    if (navigator.share) {
-      navigator.share({
-        title: barangDetail.nama,
-        text: barangDetail.deskripsi,
-        url: shareUrl,
-      });
-    } else {
-      navigator.clipboard.writeText(shareUrl).then(() => {
-        alert('Link berhasil disalin!');
-      });
+  // Helper function untuk mendapatkan gambar utama
+  const getGambarUtama = (barang) => {
+    if (!barang || !barang.gambar || !Array.isArray(barang.gambar)) return null;
+    if (barang.gambar.length > 0 && typeof barang.gambar[0] === 'string') {
+      return barang.gambar[0];
     }
+    return null;
   };
 
+  const toKebabCase = (text) => {
+  return text
+    .toLowerCase()
+    .replace(/[^\w\s-]/g, '')
+    .replace(/[\s_-]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+  };
+
+  const handleShare = async (e) => {
+  e.stopPropagation();
+  
+  if (!barangDetail) {
+    console.error('Data barang tidak tersedia untuk sharing');
+    alert('Data barang tidak tersedia');
+    return;
+  }
+  
+  try {
+    const baseUrl = window.location.origin;
+    const barangSlug = toKebabCase(barangDetail.nama);
+    const shareUrl = `${baseUrl}/barang/${barangSlug}`;
+    const shareData = {
+      title: `Pinjam ${barangDetail.nama} - Racana Diponegoro`,
+      text: `Lihat ${barangDetail.nama} untuk dipinjam di Racana Diponegoro. ${barangDetail.deskripsi?.substring(0, 100)}...`,
+      url: shareUrl
+    };
+
+    // Cek apakah Web Share API didukung
+    if (navigator.share) {
+      await navigator.share(shareData);
+    } else {
+      // Fallback: salin ke clipboard
+      await navigator.clipboard.writeText(shareUrl);
+      alert('Link berhasil disalin ke clipboard!');
+    }
+  } catch (err) {
+    console.error('Error sharing:', err);
+    // Fallback manual jika semua gagal
+    const baseUrl = window.location.origin;
+    const barangSlug = toKebabCase(barangDetail.nama);
+    const shareUrl = `${baseUrl}/barang/${barangSlug}`;
+    
+    prompt('Salin link berikut:', shareUrl);
+  }
+};
+
   const handleEdit = () => {
-    navigate(`/admin/editkatalog/${barangDetail._id}`);
+    navigate(`/admin/editkatalog/${barangDetail.id}`);
   };
 
   const handleDelete = () => {
@@ -85,7 +124,7 @@ const DetailAdminPage = () => {
 
   const confirmDelete = async () => {
     try {
-      await katalogAPI.delete(barangDetail._id);
+      await katalogAPI.delete(barangDetail.id);
       alert('Barang berhasil dihapus!');
       navigate('/admin/daftarkatalog');
     } catch (err) {
@@ -95,9 +134,9 @@ const DetailAdminPage = () => {
 
   const toggleStatus = async () => {
     try {
-      const response = await katalogAPI.toggleStatus(barangDetail._id);
-      setBarangDetail(response.data);
-      alert(`Status berhasil diubah menjadi ${response.data.status === 'tersedia' ? 'Tersedia' : 'Tidak Tersedia'}`);
+      const response = await katalogAPI.toggleStatus(barangDetail.id);
+      setBarangDetail(response);
+      alert(`Status berhasil diubah menjadi ${response.status === 'tersedia' ? 'Tersedia' : 'Tidak Tersedia'}`);
     } catch (err) {
       alert(err.message);
     }
@@ -139,7 +178,7 @@ const DetailAdminPage = () => {
       // Jika spesifikasi adalah object dengan properti 'nama' dan 'nilai'
       if (spec && typeof spec === 'object' && spec.nama && spec.nilai) {
         return (
-          <div key={spec._id || index} className="flex items-center space-x-3">
+          <div key={spec.id || index} className="flex items-center space-x-3">
             <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" />
             <span className="text-gray-600">
               <strong>{spec.nama}:</strong> {spec.nilai}
@@ -207,6 +246,8 @@ const DetailAdminPage = () => {
     );
   }
 
+  const gambarUtama = getGambarUtama(barangDetail);
+
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -266,34 +307,46 @@ const DetailAdminPage = () => {
           <div className="space-y-4">
             {/* Main Image */}
             <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
-              <img
-                src={barangDetail.gambar && barangDetail.gambar.length > 0 
-                  ? `http://localhost:5000${barangDetail.gambar[selectedImage]?.url || barangDetail.gambar[selectedImage]}`
-                  : '/placeholder-image.jpg'
-                }
-                alt={barangDetail.nama}
-                className="w-full h-96 object-cover"
-              />
+              {gambarUtama ? (
+                <img
+                  src={gambarUtama}
+                  alt={barangDetail.nama}
+                  className="w-full h-96 object-cover"
+                  onError={(e) => {
+                    e.target.src = '/images';
+                  }}
+                />
+              ) : (
+                <div className="w-full h-96 bg-gray-200 flex items-center justify-center">
+                  <Package className="w-16 h-16 text-gray-400" />
+                </div>
+              )}
             </div>
 
             {/* Thumbnail Images */}
             {barangDetail.gambar && barangDetail.gambar.length > 1 && (
               <div className="grid grid-cols-4 gap-3">
-                {barangDetail.gambar.map((gambar, index) => (
-                  <button
-                    key={index}
-                    onClick={() => setSelectedImage(index)}
-                    className={`bg-white rounded-xl shadow-md overflow-hidden border-2 transition-all duration-300 ${
-                      selectedImage === index ? 'border-blue-500 scale-105' : 'border-transparent'
-                    }`}
-                  >
-                    <img
-                      src={`http://localhost:5000${gambar?.url || gambar}`}
-                      alt={`${barangDetail.nama} ${index + 1}`}
-                      className="w-full h-20 object-cover"
-                    />
-                  </button>
-                ))}
+                {barangDetail.gambar.map((gambar, index) => {
+                  const gambarUrl = typeof gambar === 'string' ? gambar : gambar.url;
+                  return (
+                    <button
+                      key={index}
+                      onClick={() => setSelectedImage(index)}
+                      className={`bg-white rounded-xl shadow-md overflow-hidden border-2 transition-all duration-300 ${
+                        selectedImage === index ? 'border-blue-500 scale-105' : 'border-transparent'
+                      }`}
+                    >
+                      <img
+                        src={gambarUrl}
+                        alt={`${barangDetail.nama} ${index + 1}`}
+                        className="w-full h-20 object-cover"
+                        onError={(e) => {
+                          e.target.src = '/images';
+                        }}
+                      />
+                    </button>
+                  );
+                })}
               </div>
             )}
           </div>
@@ -321,9 +374,9 @@ const DetailAdminPage = () => {
                   <span className="font-semibold text-gray-800">{barangDetail.rating || 4.5}</span>
                 </div>
                 <span className="text-gray-500">•</span>
-                <span className="text-gray-600">{barangDetail.totalUlasan || 0} ulasan</span>
+                <span className="text-gray-600">{barangDetail.total_ulasan || 0} ulasan</span>
                 <span className="text-gray-500">•</span>
-                <span className="text-gray-600">{barangDetail.totalDipinjam || 0}x dipinjam</span>
+                <span className="text-gray-600">{barangDetail.total_dipinjam || 0}x dipinjam</span>
               </div>
 
               {/* Status */}
@@ -346,7 +399,7 @@ const DetailAdminPage = () => {
                 <span className="text-gray-500">/hari</span>
               </div>
               <p className="text-gray-600 text-sm">
-                Minimum peminjaman 1 hari, maksimal {barangDetail.maksPeminjaman}
+                Minimum peminjaman 1 hari, maksimal {barangDetail.maks_peminjaman}
               </p>
             </div>
 
@@ -409,15 +462,15 @@ const DetailAdminPage = () => {
                 </li>
                 <li className="flex items-start space-x-2">
                   <Clock className="w-4 h-4 text-blue-500 mt-0.5 flex-shrink-0" />
-                  <span>Maksimal peminjaman {barangDetail.maksPeminjaman}</span>
+                  <span>Maksimal peminjaman {barangDetail.maks_peminjaman}</span>
                 </li>
                 <li className="flex items-start space-x-2">
                   <Users className="w-4 h-4 text-blue-500 mt-0.5 flex-shrink-0" />
-                  <span>Total dipinjam: {barangDetail.totalDipinjam || 0} kali</span>
+                  <span>Total dipinjam: {barangDetail.total_dipinjam || 0} kali</span>
                 </li>
                 <li className="flex items-start space-x-2">
                   <Package className="w-4 h-4 text-blue-500 mt-0.5 flex-shrink-0" />
-                  <span>Dibuat: {new Date(barangDetail.createdAt).toLocaleDateString('id-ID')} • Diupdate: {new Date(barangDetail.updatedAt).toLocaleDateString('id-ID')}</span>
+                  <span>Dibuat: {new Date(barangDetail.created_at).toLocaleDateString('id-ID')} • Diupdate: {new Date(barangDetail.updated_at).toLocaleDateString('id-ID')}</span>
                 </li>
               </ul>
             </div>
@@ -502,39 +555,48 @@ const DetailAdminPage = () => {
             <div className="bg-white rounded-2xl shadow-lg p-6">
               <h2 className="text-xl font-bold text-gray-800 mb-4">Barang Terkait</h2>
               <div className="space-y-4">
-                {relatedBarang.map((barang) => (
-                  <div
-                    key={barang._id}
-                    className="flex items-center space-x-4 p-3 hover:bg-gray-50 rounded-xl cursor-pointer transition-colors duration-300"
-                    onClick={() => navigate(`/admin/katalog/detail/${barang._id}`)}
-                  >
-                    <img
-                      src={barang.gambar && barang.gambar.length > 0 
-                        ? `http://localhost:5000${barang.gambar[0]?.url || barang.gambar[0]}`
-                        : '/placeholder-image.jpg'
-                      }
-                      alt={barang.nama}
-                      className="w-12 h-12 object-cover rounded-lg"
-                    />
-                    <div className="flex-1">
-                      <h3 className="font-medium text-gray-800 line-clamp-1">
-                        {barang.nama}
-                      </h3>
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm font-semibold text-gray-800">
-                          {formatRupiah(barang.harga)}
-                        </span>
-                        <span className={`text-xs px-2 py-1 rounded-full ${
-                          barang.status === 'tersedia' 
-                            ? 'bg-green-100 text-green-800' 
-                            : 'bg-red-100 text-red-800'
-                        }`}>
-                          {barang.status === 'tersedia' ? 'Tersedia' : 'Dipinjam'}
-                        </span>
+                {relatedBarang.map((barang) => {
+                  const relatedGambar = getGambarUtama(barang);
+                  return (
+                    <div
+                      key={barang.id}
+                      className="flex items-center space-x-4 p-3 hover:bg-gray-50 rounded-xl cursor-pointer transition-colors duration-300"
+                      onClick={() => navigate(`/admin/katalog/detail/${barang.id}`)}
+                    >
+                      {relatedGambar ? (
+                        <img
+                          src={relatedGambar}
+                          alt={barang.nama}
+                          className="w-12 h-12 object-cover rounded-lg"
+                          onError={(e) => {
+                            e.target.src = '/images';
+                          }}
+                        />
+                      ) : (
+                        <div className="w-12 h-12 bg-gray-200 rounded-lg flex items-center justify-center">
+                          <Package className="w-6 h-6 text-gray-400" />
+                        </div>
+                      )}
+                      <div className="flex-1">
+                        <h3 className="font-medium text-gray-800 line-clamp-1">
+                          {barang.nama}
+                        </h3>
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-semibold text-gray-800">
+                            {formatRupiah(barang.harga)}
+                          </span>
+                          <span className={`text-xs px-2 py-1 rounded-full ${
+                            barang.status === 'tersedia' 
+                              ? 'bg-green-100 text-green-800' 
+                              : 'bg-red-100 text-red-800'
+                          }`}>
+                            {barang.status === 'tersedia' ? 'Tersedia' : 'Dipinjam'}
+                          </span>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           </div>

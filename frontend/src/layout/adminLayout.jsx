@@ -3,6 +3,10 @@ import { Routes, Route, useNavigate } from "react-router-dom";
 import LoginPage from "../pages/admin/LoginPage";
 import Dashboard from "../pages/admin/Dashboard";
 import NavbarAdmin from "../components/navbar/adminNavbar";
+import KatalogAdminPage from "../pages/admin/KatalogAdminPage";
+import CreateKatalogPage from "../pages/admin/CreateKatalogPage";
+import DetailAdminPage from "../pages/admin/DetailAdminPage";
+import EditKatalogPage from "../pages/admin/EditKatalogPage";
 
 // Komponen untuk halaman 404
 const NotFound = () => {
@@ -55,6 +59,10 @@ const AdminLayout = () => {
         <Routes>
           <Route path="/login" element={<LoginPage />} />
           <Route path="/admin" element={<Dashboard />} />
+          <Route path="/admin/daftarkatalog" element={<KatalogAdminPage />} />
+          <Route path="/admin/createkatalog" element={<CreateKatalogPage />} />
+          <Route path="/admin/detailkatalog/:id" element={<DetailAdminPage />} />
+          <Route path="/admin/editkatalog/:id" element={<EditKatalogPage />} />
 
           {/* Fallback route untuk 404 */}
           <Route path="*" element={<NotFound />} />

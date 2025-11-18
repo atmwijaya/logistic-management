@@ -12,15 +12,14 @@ import {
   CheckCircle,
   Truck,
   Package,
-  Heart,
   RefreshCw
 } from 'lucide-react';
+import katalogAPI from '../../api/katalogAPI';
 
 const DetailPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [selectedImage, setSelectedImage] = useState(0);
-  const [isLiked, setIsLiked] = useState(false);
   const [barangDetail, setBarangDetail] = useState(null);
   const [relatedBarang, setRelatedBarang] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -35,15 +34,15 @@ const DetailPage = () => {
         
         // Load detail barang
         const response = await katalogAPI.getById(id);
-        console.log('Barang Detail:', response.data); // Debug log
-        setBarangDetail(response.data);
+        console.log('Barang Detail:', response); // Debug log
+        setBarangDetail(response);
 
         // Load related barang (barang dengan kategori yang sama)
-        const relatedResponse = await katalogAPI.getAll({ 
-          kategori: response.data.kategori,
-          limit: 3 
-        });
-        setRelatedBarang(relatedResponse.data.filter(item => item._id !== id));
+        const relatedResponse = await katalogAPI.getAll();
+        const filteredRelated = Array.isArray(relatedResponse) 
+          ? relatedResponse.filter(item => item.id !== id && item.kategori === response.kategori).slice(0, 3)
+          : [];
+        setRelatedBarang(filteredRelated);
       } catch (err) {
         setError(err.message);
         console.error('Error loading barang detail:', err);
@@ -57,25 +56,56 @@ const DetailPage = () => {
     }
   }, [id]);
 
-  const handleShare = () => {
-    const shareUrl = window.location.href;
-    if (navigator.share) {
-      navigator.share({
-        title: barangDetail.nama,
-        text: barangDetail.deskripsi,
-        url: shareUrl,
-      });
-    } else {
-      navigator.clipboard.writeText(shareUrl).then(() => {
-        alert('Link berhasil disalin!');
-      }).catch(() => {
-        prompt('Salin link berikut:', shareUrl);
-      });
+  // Helper function untuk mendapatkan gambar utama
+  const getGambarUtama = (barang) => {
+    if (!barang || !barang.gambar || !Array.isArray(barang.gambar)) return null;
+    if (barang.gambar.length > 0 && typeof barang.gambar[0] === 'string') {
+      return barang.gambar[0];
     }
+    return null;
+  };
+
+  const toKebabCase = (text) => {
+  return text
+    .toLowerCase()
+    .replace(/[^\w\s-]/g, '')
+    .replace(/[\s_-]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+  };
+
+  const handleShare = async (barang, e) => {
+  e.stopPropagation();
+  try {
+    const baseUrl = window.location.origin;
+    const barangSlug = toKebabCase(barang.nama);
+    const shareUrl = `${baseUrl}/barang/${barangSlug}`;
+    const shareData = {
+      title: `Pinjam ${barang.nama} - Racana Diponegoro`,
+      text: `Lihat ${barang.nama} untuk dipinjam di Racana Diponegoro. ${barang.deskripsi?.substring(0, 100)}...`,
+      url: shareUrl
+    };
+
+    // Cek apakah Web Share API didukung
+    if (navigator.share) {
+      await navigator.share(shareData);
+    } else {
+      // Fallback: salin ke clipboard
+      await navigator.clipboard.writeText(shareUrl);
+      alert('Link berhasil disalin ke clipboard!');
+    }
+  } catch (err) {
+    console.error('Error sharing:', err);
+    // Fallback manual jika semua gagal
+    const baseUrl = window.location.origin;
+    const barangSlug = toKebabCase(barang.nama);
+    const shareUrl = `${baseUrl}/barang/${barangSlug}`;
+    
+    prompt('Salin link berikut:', shareUrl);
+  }
   };
 
   const handlePinjam = () => {
-    navigate(`/pinjam/${barangDetail._id}`);
+    navigate(`/pinjam/${barangDetail.id}`);
   };
 
   const formatRupiah = (angka) => {
@@ -114,7 +144,7 @@ const DetailPage = () => {
       // Jika spesifikasi adalah object dengan properti 'nama' dan 'nilai'
       if (spec && typeof spec === 'object' && spec.nama && spec.nilai) {
         return (
-          <div key={spec._id || index} className="flex items-center space-x-3">
+          <div key={spec.id || index} className="flex items-center space-x-3">
             <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" />
             <span className="text-slate-600">
               <strong>{spec.nama}:</strong> {spec.nilai}
@@ -182,6 +212,8 @@ const DetailPage = () => {
     );
   }
 
+  const gambarUtama = getGambarUtama(barangDetail);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -201,34 +233,46 @@ const DetailPage = () => {
           <div className="space-y-4">
             {/* Main Image */}
             <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
-              <img
-                src={barangDetail.gambar && barangDetail.gambar.length > 0 
-                  ? `http://localhost:5000${barangDetail.gambar[selectedImage]?.url || barangDetail.gambar[selectedImage]}`
-                  : '/placeholder-image.jpg'
-                }
-                alt={barangDetail.nama}
-                className="w-full h-96 object-cover"
-              />
+              {gambarUtama ? (
+                <img
+                  src={gambarUtama}
+                  alt={barangDetail.nama}
+                  className="w-full h-96 object-cover"
+                  onError={(e) => {
+                    e.target.src = '/images';
+                  }}
+                />
+              ) : (
+                <div className="w-full h-96 bg-gray-200 flex items-center justify-center">
+                  <Package className="w-16 h-16 text-gray-400" />
+                </div>
+              )}
             </div>
 
             {/* Thumbnail Images */}
             {barangDetail.gambar && barangDetail.gambar.length > 1 && (
               <div className="grid grid-cols-4 gap-3">
-                {barangDetail.gambar.map((gambar, index) => (
-                  <button
-                    key={index}
-                    onClick={() => setSelectedImage(index)}
-                    className={`bg-white rounded-xl shadow-md overflow-hidden border-2 transition-all duration-300 ${
-                      selectedImage === index ? 'border-blue-500 scale-105' : 'border-transparent'
-                    }`}
-                  >
-                    <img
-                      src={`http://localhost:5000${gambar?.url || gambar}`}
-                      alt={`${barangDetail.nama} ${index + 1}`}
-                      className="w-full h-20 object-cover"
-                    />
-                  </button>
-                ))}
+                {barangDetail.gambar.map((gambar, index) => {
+                  const gambarUrl = typeof gambar === 'string' ? gambar : gambar.url;
+                  return (
+                    <button
+                      key={index}
+                      onClick={() => setSelectedImage(index)}
+                      className={`bg-white rounded-xl shadow-md overflow-hidden border-2 transition-all duration-300 ${
+                        selectedImage === index ? 'border-blue-500 scale-105' : 'border-transparent'
+                      }`}
+                    >
+                      <img
+                        src={gambarUrl}
+                        alt={`${barangDetail.nama} ${index + 1}`}
+                        className="w-full h-20 object-cover"
+                        onError={(e) => {
+                          e.target.src = '/images';
+                        }}
+                      />
+                    </button>
+                  );
+                })}
               </div>
             )}
           </div>
@@ -269,7 +313,7 @@ const DetailPage = () => {
                 <span className="text-slate-500">/hari</span>
               </div>
               <p className="text-slate-600 text-sm">
-                Minimum peminjaman 1 hari, maksimal {barangDetail.maksPeminjaman}
+                Minimum peminjaman 1 hari, maksimal {barangDetail.maks_peminjaman}
               </p>
             </div>
 
@@ -298,7 +342,7 @@ const DetailPage = () => {
             {/* Action Buttons */}
             <div className="flex space-x-4">
               <button
-                onClick={handleShare}
+                onClick={(e) => handleShare(barangDetail, e)}
                 className="flex-1 bg-white border border-slate-300 text-slate-700 py-4 rounded-2xl font-semibold shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300 flex items-center justify-center space-x-2"
               >
                 <Share2 className="w-5 h-5" />
@@ -331,7 +375,7 @@ const DetailPage = () => {
                 </li>
                 <li className="flex items-start space-x-2">
                   <Clock className="w-4 h-4 text-blue-500 mt-0.5 flex-shrink-0" />
-                  <span>Maksimal peminjaman {barangDetail.maksPeminjaman}</span>
+                  <span>Maksimal peminjaman {barangDetail.maks_peminjaman}</span>
                 </li>
                 <li className="flex items-start space-x-2">
                   <Users className="w-4 h-4 text-blue-500 mt-0.5 flex-shrink-0" />
@@ -378,41 +422,50 @@ const DetailPage = () => {
           <div className="space-y-6">
             <h2 className="text-xl font-bold text-slate-800">Barang Terkait</h2>
             <div className="space-y-4">
-              {relatedBarang.map((barang) => (
-                <div
-                  key={barang._id}
-                  className="bg-white rounded-2xl shadow-lg p-4 hover:shadow-xl transition-all duration-300 cursor-pointer"
-                  onClick={() => navigate(`/barang/${barang._id}`)}
-                >
-                  <div className="flex space-x-4">
-                    <img
-                      src={barang.gambar && barang.gambar.length > 0 
-                        ? `http://localhost:5000${barang.gambar[0]?.url || barang.gambar[0]}`
-                        : '/placeholder-image.jpg'
-                      }
-                      alt={barang.nama}
-                      className="w-20 h-20 object-cover rounded-xl"
-                    />
-                    <div className="flex-1">
-                      <h3 className="font-semibold text-slate-800 line-clamp-2">
-                        {barang.nama}
-                      </h3>
-                      <div className="flex items-center justify-between mt-2">
-                        <span className="text-lg font-bold text-slate-800">
-                          {formatRupiah(barang.harga)}
-                        </span>
-                        <span className={`text-xs px-2 py-1 rounded-full ${
-                          barang.status === 'tersedia' 
-                            ? 'bg-green-100 text-green-800' 
-                            : 'bg-red-100 text-red-800'
-                        }`}>
-                          {barang.status === 'tersedia' ? 'Tersedia' : 'Dipinjam'}
-                        </span>
+              {relatedBarang.map((barang) => {
+                const relatedGambar = getGambarUtama(barang);
+                return (
+                  <div
+                    key={barang.id}
+                    className="bg-white rounded-2xl shadow-lg p-4 hover:shadow-xl transition-all duration-300 cursor-pointer"
+                    onClick={() => navigate(`/katalog/${barang.id}`)}
+                  >
+                    <div className="flex space-x-4">
+                      {relatedGambar ? (
+                        <img
+                          src={relatedGambar}
+                          alt={barang.nama}
+                          className="w-20 h-20 object-cover rounded-xl"
+                          onError={(e) => {
+                            e.target.src = '/images';
+                          }}
+                        />
+                      ) : (
+                        <div className="w-20 h-20 bg-gray-200 rounded-xl flex items-center justify-center">
+                          <Package className="w-8 h-8 text-gray-400" />
+                        </div>
+                      )}
+                      <div className="flex-1">
+                        <h3 className="font-semibold text-slate-800 line-clamp-2">
+                          {barang.nama}
+                        </h3>
+                        <div className="flex items-center justify-between mt-2">
+                          <span className="text-lg font-bold text-slate-800">
+                            {formatRupiah(barang.harga)}
+                          </span>
+                          <span className={`text-xs px-2 py-1 rounded-full ${
+                            barang.status === 'tersedia' 
+                              ? 'bg-green-100 text-green-800' 
+                              : 'bg-red-100 text-red-800'
+                          }`}>
+                            {barang.status === 'tersedia' ? 'Tersedia' : 'Dipinjam'}
+                          </span>
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         </div>

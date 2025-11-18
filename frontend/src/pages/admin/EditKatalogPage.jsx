@@ -10,6 +10,7 @@ import {
   Trash2,
   Edit
 } from 'lucide-react';
+import katalogAPI from '../../api/katalogAPI';
 
 const EditKatalogPage = () => {
   const { id } = useParams();
@@ -38,39 +39,74 @@ const EditKatalogPage = () => {
       try {
         setIsLoading(true);
         const response = await katalogAPI.getById(id);
-        const barang = response.data;
         
+        console.log('📦 Full API Response:', response); // Debug log
+        
+        // Cek struktur response yang sebenarnya
+        const barang = response.data || response;
+        
+        console.log('🔍 Barang data:', barang); // Debug log
+        
+        if (!barang) {
+          throw new Error('Data barang tidak ditemukan');
+        }
+
+        // Set form data dengan validasi yang lebih ketat
         setFormData({
-          nama: barang.nama,
-          kategori: barang.kategori,
-          status: barang.status,
-          harga: barang.harga.toString(),
-          stok: barang.stok.toString(),
-          maksPeminjaman: barang.maksPeminjaman,
-          kualitas: barang.kualitas,
-          deskripsi: barang.deskripsi,
-          lokasi: barang.lokasi,
-          spesifikasi: barang.spesifikasi.map(spec => spec.nilai ? `${spec.nama}: ${spec.nilai}` : spec)
+          nama: barang.nama || '',
+          kategori: barang.kategori || 'outdoor',
+          status: barang.status || 'tersedia',
+          harga: barang.harga ? barang.harga.toString() : '',
+          stok: barang.stok ? barang.stok.toString() : '',
+          maksPeminjaman: barang.maks_peminjaman || barang.maksPeminjaman || '',
+          kualitas: barang.kualitas || 'Bagus',
+          deskripsi: barang.deskripsi || '',
+          lokasi: barang.lokasi || 'Gudang Utama',
+          spesifikasi: Array.isArray(barang.spesifikasi) && barang.spesifikasi.length > 0 
+            ? barang.spesifikasi 
+            : ['']
         });
 
-        setExistingImages(barang.gambar.map((img, index) => ({
-          id: img._id,
-          url: `http://localhost:5000${img.url}`,
-          name: img.namaFile,
-          isExisting: true
-        })));
+        // Handle gambar - sesuaikan dengan struktur data dari API
+        if (Array.isArray(barang.gambar) && barang.gambar.length > 0) {
+          setExistingImages(barang.gambar.map((imgUrl, index) => ({
+            id: `existing-${index}`,
+            url: imgUrl,
+            name: `gambar-${index + 1}.jpg`,
+            isExisting: true
+          })));
+        } else if (barang.gambar && typeof barang.gambar === 'string') {
+          // Jika gambar adalah string tunggal
+          setExistingImages([{
+            id: 'existing-0',
+            url: barang.gambar,
+            name: 'gambar-1.jpg',
+            isExisting: true
+          }]);
+        } else {
+          setExistingImages([]);
+        }
+
+        console.log('✅ Data loaded successfully');
+        
       } catch (error) {
-        alert(error.message);
+        console.error('❌ Error loading barang data:', error);
+        alert('Gagal memuat data barang: ' + (error.message || 'Data tidak ditemukan'));
         navigate('/admin/daftarkatalog');
       } finally {
         setIsLoading(false);
       }
     };
 
-    loadBarangData();
+    if (id) {
+      loadBarangData();
+    } else {
+      alert('ID barang tidak valid');
+      navigate('/admin/daftarkatalog');
+    }
   }, [id, navigate]);
 
-  // Handle drag events (sama seperti CreateKatalogPage)
+  // Handle drag events
   const handleDragEnter = (e) => {
     e.preventDefault();
     e.stopPropagation();
@@ -110,10 +146,26 @@ const EditKatalogPage = () => {
       return;
     }
 
+    // Cek jumlah gambar tidak melebihi 10
+    const allImages = [...existingImages, ...images];
+    if (allImages.length + imageFiles.length > 10) {
+      alert('Maksimal 10 gambar yang dapat diupload');
+      return;
+    }
+
+    // Cek ukuran file (maksimal 5MB)
+    const oversizedFiles = imageFiles.filter(file => file.size > 5 * 1024 * 1024);
+    if (oversizedFiles.length > 0) {
+      alert('Beberapa file melebihi ukuran maksimal 5MB');
+      return;
+    }
+
+    // Tambahkan file ke state
     setImages(prev => [...prev, ...imageFiles.map(file => ({
       id: Date.now() + Math.random(),
       file: file,
       name: file.name,
+      size: file.size,
       isNew: true
     }))]);
   };
@@ -176,51 +228,53 @@ const EditKatalogPage = () => {
       return;
     }
 
-    if (!formData.nama || !formData.harga || !formData.stok || !formData.deskripsi) {
+    if (!formData.nama || !formData.harga || !formData.stok || !formData.deskripsi || !formData.maksPeminjaman) {
       alert('Harap isi semua field yang wajib diisi');
+      return;
+    }
+
+    if (formData.deskripsi.length < 50) {
+      alert('Deskripsi minimal 50 karakter');
       return;
     }
 
     try {
       setLoading(true);
 
-      // Create FormData object
-      const submitData = new FormData();
-      
-      // Append form data
-      submitData.append('nama', formData.nama);
-      submitData.append('kategori', formData.kategori);
-      submitData.append('status', formData.status);
-      submitData.append('harga', formData.harga);
-      submitData.append('stok', formData.stok);
-      submitData.append('maksPeminjaman', formData.maksPeminjaman);
-      submitData.append('kualitas', formData.kualitas);
-      submitData.append('deskripsi', formData.deskripsi);
-      submitData.append('lokasi', formData.lokasi);
-      
-      // Append existing images
-      const existingImageIds = existingImages.map(img => img.id);
-      submitData.append('existingImages', JSON.stringify(existingImageIds));
-      
-      // Append spesifikasi
-      formData.spesifikasi.forEach((spec, index) => {
-        if (spec.trim() !== '') {
-          submitData.append('spesifikasi', spec);
-        }
-      });
+      // Filter spesifikasi yang tidak kosong
+      const filteredSpesifikasi = formData.spesifikasi.filter(spec => spec.trim() !== '');
 
-      // Append new images
-      images.forEach((image) => {
-        submitData.append('gambar', image.file);
-      });
+      // Prepare data untuk API
+      const submitData = {
+        nama: formData.nama,
+        kategori: formData.kategori,
+        status: formData.status,
+        harga: parseFloat(formData.harga),
+        stok: parseInt(formData.stok),
+        maksPeminjaman: formData.maksPeminjaman,
+        kualitas: formData.kualitas,
+        deskripsi: formData.deskripsi,
+        lokasi: formData.lokasi,
+        spesifikasi: filteredSpesifikasi,
+        gambar: images.map(img => img.file) // Kirim file gambar baru
+      };
+
+      // Jika ada gambar existing, tambahkan URL-nya
+      const existingImageUrls = existingImages.map(img => img.url);
+      if (existingImageUrls.length > 0) {
+        submitData.gambar = [...existingImageUrls, ...submitData.gambar];
+      }
+
+      console.log('🚀 Sending data to API:', submitData);
 
       // Send to API
-      const response = await katalogAPI.update(id, submitData);
+      await katalogAPI.update(id, submitData);
       
       alert('Barang berhasil diperbarui!');
       navigate('/admin/daftarkatalog');
     } catch (error) {
-      alert(error.message);
+      console.error('❌ Error updating katalog:', error);
+      alert(error.message || 'Terjadi kesalahan saat memperbarui barang');
     } finally {
       setLoading(false);
     }
@@ -312,7 +366,7 @@ const EditKatalogPage = () => {
                     Format yang didukung: JPG, PNG, GIF (Maksimal 5MB per file)
                   </p>
                   <p className="text-gray-400 text-xs mt-1">
-                    Gambar yang diupload akan ditambahkan ke gambar yang sudah ada
+                    Rekomendasi: Minimal 1 gambar, maksimal 10 gambar
                   </p>
                 </div>
               </div>
@@ -331,6 +385,9 @@ const EditKatalogPage = () => {
                         src={image.isExisting ? image.url : URL.createObjectURL(image.file)}
                         alt={`Preview ${index + 1}`}
                         className="w-full h-24 object-cover rounded-lg"
+                        onError={(e) => {
+                          e.target.src = 'https://via.placeholder.com/150?text=Gambar+Error';
+                        }}
                       />
                       {image.isExisting && (
                         <div className="absolute top-2 left-2">
@@ -349,7 +406,7 @@ const EditKatalogPage = () => {
                       >
                         <X className="w-3 h-3" />
                       </button>
-                      <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 text-white text-xs p-1 rounded-b-lg">
+                      <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 text-white text-xs p-1 rounded-b-lg truncate">
                         {image.name}
                       </div>
                     </div>
@@ -364,7 +421,6 @@ const EditKatalogPage = () => {
             <h2 className="text-xl font-bold text-gray-900 mb-6">Informasi Dasar</h2>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Form fields sama seperti CreateKatalogPage */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Nama Barang *
@@ -395,7 +451,6 @@ const EditKatalogPage = () => {
                 </select>
               </div>
 
-              {/* ... sisa form fields ... */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Status *

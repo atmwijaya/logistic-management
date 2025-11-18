@@ -9,6 +9,7 @@ import {
   Plus,
   Trash2
 } from 'lucide-react';
+import katalogAPI from '../../api/katalogAPI';
 
 const CreateKatalogPage = () => {
   const navigate = useNavigate();
@@ -69,11 +70,25 @@ const CreateKatalogPage = () => {
       return;
     }
 
+    // Cek jumlah gambar tidak melebihi 10
+    if (images.length + imageFiles.length > 10) {
+      alert('Maksimal 10 gambar yang dapat diupload');
+      return;
+    }
+
+    // Cek ukuran file (maksimal 5MB)
+    const oversizedFiles = imageFiles.filter(file => file.size > 5 * 1024 * 1024);
+    if (oversizedFiles.length > 0) {
+      alert('Beberapa file melebihi ukuran maksimal 5MB');
+      return;
+    }
+
     // Tambahkan file ke state
     setImages(prev => [...prev, ...imageFiles.map(file => ({
       id: Date.now() + Math.random(),
       file: file,
-      name: file.name
+      name: file.name,
+      size: file.size
     }))]);
   };
 
@@ -130,7 +145,7 @@ const CreateKatalogPage = () => {
       return;
     }
 
-    if (!formData.nama || !formData.harga || !formData.stok || !formData.deskripsi) {
+    if (!formData.nama || !formData.harga || !formData.stok || !formData.deskripsi || !formData.maksPeminjaman) {
       alert('Harap isi semua field yang wajib diisi');
       return;
     }
@@ -143,31 +158,23 @@ const CreateKatalogPage = () => {
     try {
       setLoading(true);
 
-      // Create FormData object
-      const submitData = new FormData();
-      
-      // Append form data
-      submitData.append('nama', formData.nama);
-      submitData.append('kategori', formData.kategori);
-      submitData.append('status', formData.status);
-      submitData.append('harga', formData.harga);
-      submitData.append('stok', formData.stok);
-      submitData.append('maksPeminjaman', formData.maksPeminjaman);
-      submitData.append('kualitas', formData.kualitas);
-      submitData.append('deskripsi', formData.deskripsi);
-      submitData.append('lokasi', formData.lokasi);
-      
-      // Append spesifikasi
-      formData.spesifikasi.forEach((spec, index) => {
-        if (spec.trim() !== '') {
-          submitData.append('spesifikasi', spec);
-        }
-      });
+      // Filter spesifikasi yang tidak kosong
+      const filteredSpesifikasi = formData.spesifikasi.filter(spec => spec.trim() !== '');
 
-      // Append images
-      images.forEach((image) => {
-        submitData.append('gambar', image.file);
-      });
+      // Prepare data untuk API
+      const submitData = {
+        nama: formData.nama,
+        kategori: formData.kategori,
+        status: formData.status,
+        harga: formData.harga,
+        stok: formData.stok,
+        maksPeminjaman: formData.maksPeminjaman,
+        kualitas: formData.kualitas,
+        deskripsi: formData.deskripsi,
+        lokasi: formData.lokasi,
+        spesifikasi: filteredSpesifikasi,
+        gambar: images.map(img => img.file) // Kirim file gambar
+      };
 
       // Send to API
       const response = await katalogAPI.create(submitData);
@@ -175,7 +182,8 @@ const CreateKatalogPage = () => {
       alert('Barang berhasil ditambahkan!');
       navigate('/admin/daftarkatalog');
     } catch (error) {
-      alert(error.message);
+      console.error('Error creating katalog:', error);
+      alert(error.message || 'Terjadi kesalahan saat menambah barang');
     } finally {
       setLoading(false);
     }
@@ -277,7 +285,7 @@ const CreateKatalogPage = () => {
                       >
                         <X className="w-3 h-3" />
                       </button>
-                      <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 text-white text-xs p-1 rounded-b-lg">
+                      <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 text-white text-xs p-1 rounded-b-lg truncate">
                         {image.name}
                       </div>
                     </div>
@@ -292,7 +300,6 @@ const CreateKatalogPage = () => {
             <h2 className="text-xl font-bold text-gray-900 mb-6">Informasi Dasar</h2>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Form fields tetap sama seperti sebelumnya */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Nama Barang *
@@ -323,7 +330,6 @@ const CreateKatalogPage = () => {
                 </select>
               </div>
 
-              {/* ... sisa form fields sama seperti sebelumnya ... */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Status *
