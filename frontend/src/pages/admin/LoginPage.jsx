@@ -4,7 +4,7 @@ import { createClient } from '@supabase/supabase-js'
 import { Auth } from '@supabase/auth-ui-react'
 import { ThemeSupa } from '@supabase/auth-ui-shared'
 
-const supabase = createClient('https://ispttoyjzbfafmiuhkeu.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlzcHR0b3lqemJmYWZtaXVoa2V1Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2MzM4MjA4OSwiZXhwIjoyMDc4OTU4MDg5fQ.GzhEizV91uTeeeXhqDgcQFZApt1DnFTI8B3qBOZ8gMo')
+const supabase = createClient (import.meta.env.VITE_SUPABASE_URL, import.meta.env.VITE_SUPABASE_ANON_KEY)
 
 export default function LoginPage() {
   const [formData, setFormData] = useState({

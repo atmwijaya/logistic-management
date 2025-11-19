@@ -369,12 +369,6 @@ const DetailAdminPage = () => {
 
               {/* Rating and Stats */}
               <div className="flex items-center space-x-2 mb-4">
-                <div className="flex items-center space-x-1">
-                  <Star className="w-5 h-5 text-yellow-500 fill-current" />
-                  <span className="font-semibold text-gray-800">{barangDetail.rating || 4.5}</span>
-                </div>
-                <span className="text-gray-500">•</span>
-                <span className="text-gray-600">{barangDetail.total_ulasan || 0} ulasan</span>
                 <span className="text-gray-500">•</span>
                 <span className="text-gray-600">{barangDetail.total_dipinjam || 0}x dipinjam</span>
               </div>

@@ -1,83 +1,38 @@
-import React, { useState } from 'react';
+// FeaturedBarangSection.jsx
+import React, { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, Star, Clock, Users, Shield, Calendar } from 'lucide-react';
+import katalogAPI from '../../api/katalogAPI';
+import { useNavigate } from 'react-router-dom';
 
 const FeaturedBarangSection = () => {
   const [currentPage, setCurrentPage] = useState(0);
+  const [featuredBarang, setFeaturedBarang] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
-  const featuredBarang = [
-    {
-      id: 1,
-      nama: "Tenda Dome 4 Person",
-      gambar: "https://down-id.img.susercontent.com/file/10a6b9bfcddab0014d61d81a2b4c7297?w=400&h=300&fit=crop&crop=center",
-      status: "tersedia",
-      totalDipinjam: 42,
-      maksPeminjaman: "7 hari",
-      kualitas: "Bagus",
-      deskripsi: "Tenda dome kapasitas 4 orang, waterproof, cocok untuk camping keluarga atau kelompok kecil.",
-      harga: "Rp 25.000/hari",
-      rating: 4.8
-    },
-    {
-      id: 2,
-      nama: "Kompor Portable Gas",
-      gambar: "https://cdn.ruparupa.io/fit-in/400x400/filters:format(webp)/filters:quality(90)/ruparupa-com/image/upload/Products/10485182_1.jpg?w=400&h=300&fit=crop&crop=center",
-      status: "tidak_tersedia",
-      totalDipinjam: 38,
-      maksPeminjaman: "14 hari",
-      kualitas: "Sangat Bagus",
-      deskripsi: "Kompor portable dengan sistem gas cartridge, praktis dan mudah dibawa untuk aktivitas outdoor.",
-      harga: "Rp 15.000/hari",
-      rating: 4.9
-    },
-    {
-      id: 3,
-      nama: "Sleeping Bag -5°C",
-      gambar: "https://images.unsplash.com/photo-1544966503-7cc5ac882d5f?w=400&h=300&fit=crop&crop=center",
-      status: "tersedia",
-      totalDipinjam: 35,
-      maksPeminjaman: "10 hari",
-      kualitas: "Bagus",
-      deskripsi: "Sleeping bag tahan hingga suhu -5°C, bahan waterproof, nyaman untuk camping di daerah dingin.",
-      harga: "Rp 12.000/hari",
-      rating: 4.7
-    },
-    {
-      id: 4,
-      nama: "Carrier 60L Expedition",
-      gambar: "https://images.unsplash.com/photo-1551698618-1dfe5d97d256?w=400&h=300&fit=crop&crop=center",
-      status: "tersedia",
-      totalDipinjam: 28,
-      maksPeminjaman: "14 hari",
-      kualitas: "Sangat Bagus",
-      deskripsi: "Carrier kapasitas 60 liter dengan frame internal, cocok untuk pendakian dan expedition panjang.",
-      harga: "Rp 20.000/hari",
-      rating: 4.9
-    },
-    {
-      id: 5,
-      nama: "Nesting Cooking Set",
-      gambar: "https://images.unsplash.com/photo-1558618047-3c8c76ca7d13?w=400&h=300&fit=crop&crop=center",
-      status: "tidak_tersedia",
-      totalDipinjam: 31,
-      maksPeminjaman: "21 hari",
-      kualitas: "Bagus",
-      deskripsi: "Set peralatan masak nesting yang praktis, terdiri dari panci, wajan, dan cangkir yang saling menyatu.",
-      harga: "Rp 10.000/hari",
-      rating: 4.6
-    },
-    {
-      id: 6,
-      nama: "Headlamp LED Waterproof",
-      gambar: "https://images.unsplash.com/photo-1558618047-3c8c76ca7d13?w=400&h=300&fit=crop&crop=center",
-      status: "tersedia",
-      totalDipinjam: 45,
-      maksPeminjaman: "30 hari",
-      kualitas: "Baik",
-      deskripsi: "Headlamp LED dengan daya tahan baterai panjang, waterproof IPX4, cocok untuk aktivitas malam.",
-      harga: "Rp 8.000/hari",
-      rating: 4.5
+  // Load data dari backend
+  const loadFeaturedBarang = async () => {
+    try {
+      setLoading(true);
+      const response = await katalogAPI.getAll();
+      
+      // Ambil barang populer (total dipinjam tinggi) tanpa filter status
+      const popularBarang = (response || [])
+        .sort((a, b) => (b.total_dipinjam || 0) - (a.total_dipinjam || 0))
+        .slice(0, 6); // Ambil 6 barang paling populer
+
+      setFeaturedBarang(popularBarang);
+    } catch (err) {
+      console.error('Error loading featured barang:', err);
+      setFeaturedBarang([]);
+    } finally {
+      setLoading(false);
     }
-  ];
+  };
+
+  useEffect(() => {
+    loadFeaturedBarang();
+  }, []);
 
   const itemsPerPage = 3;
   const totalPages = Math.ceil(featuredBarang.length / itemsPerPage);
@@ -115,6 +70,44 @@ const FeaturedBarangSection = () => {
     }
   };
 
+  const formatRupiah = (angka) => {
+    return new Intl.NumberFormat('id-ID', {
+      style: 'currency',
+      currency: 'IDR',
+      minimumFractionDigits: 0
+    }).format(angka);
+  };
+
+  // Helper function untuk mendapatkan gambar utama
+  const getGambarUtama = (barang) => {
+    if (!barang.gambar || !Array.isArray(barang.gambar)) return null;
+    if (barang.gambar.length > 0 && typeof barang.gambar[0] === 'string') {
+      return barang.gambar[0];
+    }
+    return null;
+  };
+
+  const handlePinjam = (barangId, e) => {
+    e.stopPropagation();
+    navigate(`/pinjam/${barangId}`);
+  };
+
+  const handleDetail = (barangId) => {
+    navigate(`/katalog/${barangId}`);
+  };
+
+  if (loading) {
+    return (
+      <section className="py-16 px-4 sm:px-6 lg:px-8 bg-linear-to-br from-white to-blue-50/30">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center">
+            <p className="text-lg text-slate-600">Memuat barang populer...</p>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section className="py-16 px-4 sm:px-6 lg:px-8 bg-linear-to-br from-white to-blue-50/30">
       <div className="max-w-7xl mx-auto">
@@ -132,126 +125,169 @@ const FeaturedBarangSection = () => {
         <div className="relative">
           {/* Items Container */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-            {currentItems.map((barang) => (
-              <div
-                key={barang.id}
-                className="bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 border border-slate-100 overflow-hidden group"
-              >
-                {/* Image */}
-                <div className="relative overflow-hidden">
-                  <img
-                    src={barang.gambar}
-                    alt={barang.nama}
-                    className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
-                  />
-                  {/* Status Badge */}
-                  <div className="absolute top-4 right-4">
-                    <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(barang.status)}`}>
-                      {getStatusText(barang.status)}
-                    </span>
-                  </div>
-                  {/* Rating Badge */}
-                  <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-sm rounded-full px-3 py-1 flex items-center space-x-1">
-                    <Star className="w-4 h-4 text-yellow-500 fill-current" />
-                    <span className="text-sm font-semibold text-slate-700">{barang.rating}</span>
-                  </div>
-                </div>
-
-                {/* Content */}
-                <div className="p-6">
-                  {/* Title */}
-                  <h3 className="text-xl font-bold text-slate-800 mb-3 line-clamp-1">
-                    {barang.nama}
-                  </h3>
-
-                  {/* Description */}
-                  <p className="text-slate-600 text-sm mb-4 line-clamp-2">
-                    {barang.deskripsi}
-                  </p>
-
-                  {/* Stats Grid */}
-                  <div className="grid grid-cols-2 gap-3 mb-4">
-                    <div className="flex items-center space-x-2 text-sm text-slate-600">
-                      <Users className="w-4 h-4 text-blue-500" />
-                      <span>{barang.totalDipinjam}x dipinjam</span>
-                    </div>
-                    <div className="flex items-center space-x-2 text-sm text-slate-600">
-                      <Clock className="w-4 h-4 text-orange-500" />
-                      <span>Maks {barang.maksPeminjaman}</span>
-                    </div>
-                    <div className="flex items-center space-x-2 text-sm text-slate-600">
-                      <Shield className="w-4 h-4 text-green-500" />
-                      <span className={`px-2 py-1 rounded-full text-xs ${getKualitasColor(barang.kualitas)}`}>
-                        {barang.kualitas}
+            {currentItems.map((barang) => {
+              const gambarUtama = getGambarUtama(barang);
+              const isTersedia = barang.status === 'tersedia';
+              
+              return (
+                <div
+                  key={barang.id}
+                  className={`bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 border border-slate-100 overflow-hidden group cursor-pointer ${
+                    !isTersedia ? 'opacity-90' : ''
+                  }`}
+                  onClick={() => handleDetail(barang.id)}
+                >
+                  {/* Image */}
+                  <div className="relative overflow-hidden">
+                    <img
+                      src={gambarUtama || "https://images.unsplash.com/photo-1551698618-1dfe5d97d256?w=400&h=300&fit=crop&crop=center"}
+                      alt={barang.nama}
+                      className={`w-full h-48 object-cover transition-transform duration-300 ${
+                        isTersedia ? 'group-hover:scale-105' : 'grayscale'
+                      }`}
+                    />
+                    
+                    {/* Status Badge */}
+                    <div className="absolute top-4 right-4">
+                      <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(barang.status)}`}>
+                        {getStatusText(barang.status)}
                       </span>
                     </div>
-                    <div className="flex items-center space-x-2 text-sm text-slate-600">
-                      <Calendar className="w-4 h-4 text-purple-500" />
-                      <span className="font-semibold text-slate-800">{barang.harga}</span>
+                    
+                    {/* Rating Badge */}
+                    <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-sm rounded-full px-3 py-1 flex items-center space-x-1">
+                      <Star className="w-4 h-4 text-yellow-500 fill-current" />
+                      <span className="text-sm font-semibold text-slate-700">{barang.rating || 4.5}</span>
                     </div>
+
+                    {/* Overlay untuk barang tidak tersedia */}
+                    {!isTersedia && (
+                      <div className="absolute inset-0 bg-black bg-opacity-10 flex items-center justify-center">
+                        <div className="bg-white bg-opacity-95 rounded-full px-4 py-2 shadow-lg">
+                          <span className="text-sm font-semibold text-red-600 flex items-center space-x-1">
+                            <Calendar className="w-4 h-4" />
+                            <span>Sedang Dipinjam</span>
+                          </span>
+                        </div>
+                      </div>
+                    )}
                   </div>
 
-                  {/* Action Button */}
-                  <button
-                    className={`w-full py-3 rounded-xl font-semibold transition-all duration-300 ${
-                      barang.status === 'tersedia'
-                        ? 'bg-blue-600 text-white hover:bg-blue-700 hover:scale-105'
-                        : 'bg-slate-200 text-slate-500 cursor-not-allowed'
-                    }`}
-                    disabled={barang.status !== 'tersedia'}
-                  >
-                    {barang.status === 'tersedia' ? 'Pinjam Sekarang' : 'Sedang Dipinjam'}
-                  </button>
+                  {/* Content */}
+                  <div className="p-6">
+                    {/* Title */}
+                    <h3 className={`text-xl font-bold mb-3 line-clamp-1 transition-colors duration-300 ${
+                      isTersedia ? 'text-slate-800 hover:text-blue-600' : 'text-slate-600'
+                    }`}>
+                      {barang.nama}
+                    </h3>
+
+                    {/* Description */}
+                    <p className="text-slate-600 text-sm mb-4 line-clamp-2">
+                      {barang.deskripsi}
+                    </p>
+
+                    {/* Stats Grid */}
+                    <div className="grid grid-cols-2 gap-3 mb-4">
+                      <div className="flex items-center space-x-2 text-sm text-slate-600">
+                        <Users className="w-4 h-4 text-blue-500" />
+                        <span>{barang.total_dipinjam || 0}x dipinjam</span>
+                      </div>
+                      <div className="flex items-center space-x-2 text-sm text-slate-600">
+                        <Clock className="w-4 h-4 text-orange-500" />
+                        <span>Maks {barang.maks_peminjaman || '7 hari'}</span>
+                      </div>
+                      <div className="flex items-center space-x-2 text-sm text-slate-600">
+                        <Shield className="w-4 h-4 text-green-500" />
+                        <span className={`px-2 py-1 rounded-full text-xs ${getKualitasColor(barang.kualitas)}`}>
+                          {barang.kualitas || 'Baik'}
+                        </span>
+                      </div>
+                      <div className="flex items-center space-x-2 text-sm text-slate-600">
+                        <Calendar className="w-4 h-4 text-purple-500" />
+                        <span className={`font-semibold ${isTersedia ? 'text-slate-800' : 'text-slate-500'}`}>
+                          {formatRupiah(barang.harga || 0)}/hari
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Action Button */}
+                    <button
+                      onClick={(e) => handlePinjam(barang.id, e)}
+                      className={`w-full py-3 rounded-xl font-semibold transition-all duration-300 ${
+                        isTersedia
+                          ? 'bg-blue-600 text-white hover:bg-blue-700 hover:scale-105'
+                          : 'bg-slate-200 text-slate-500 cursor-not-allowed'
+                      }`}
+                      disabled={!isTersedia}
+                    >
+                      {isTersedia ? 'Pinjam Sekarang' : 'Sedang Dipinjam'}
+                    </button>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
-          {/* Pagination Controls */}
-          <div className="flex items-center justify-between">
-            {/* Previous Button */}
-            <button
-              onClick={prevPage}
-              className="flex items-center space-x-2 px-4 py-2 rounded-xl bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition-all duration-300"
-            >
-              <ChevronLeft className="w-5 h-5" />
-              <span className="hidden sm:block">Sebelumnya</span>
-            </button>
-
-            {/* Pagination Dots */}
-            <div className="flex space-x-2">
-              {Array.from({ length: totalPages }).map((_, index) => (
+          {/* Pagination Controls - hanya ditampilkan jika ada lebih dari 1 page */}
+          {totalPages > 1 && (
+            <>
+              <div className="flex items-center justify-between">
+                {/* Previous Button */}
                 <button
-                  key={index}
-                  onClick={() => goToPage(index)}
-                  className={`w-3 h-3 rounded-full transition-all duration-300 ${
-                    index === currentPage ? 'bg-blue-600 w-8' : 'bg-slate-300'
-                  }`}
-                />
-              ))}
+                  onClick={prevPage}
+                  className="flex items-center space-x-2 px-4 py-2 rounded-xl bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition-all duration-300"
+                >
+                  <ChevronLeft className="w-5 h-5" />
+                  <span className="hidden sm:block">Sebelumnya</span>
+                </button>
+
+                {/* Pagination Dots */}
+                <div className="flex space-x-2">
+                  {Array.from({ length: totalPages }).map((_, index) => (
+                    <button
+                      key={index}
+                      onClick={() => goToPage(index)}
+                      className={`w-3 h-3 rounded-full transition-all duration-300 ${
+                        index === currentPage ? 'bg-blue-600 w-8' : 'bg-slate-300'
+                      }`}
+                    />
+                  ))}
+                </div>
+
+                {/* Next Button */}
+                <button
+                  onClick={nextPage}
+                  className="flex items-center space-x-2 px-4 py-2 rounded-xl bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition-all duration-300"
+                >
+                  <span className="hidden sm:block">Selanjutnya</span>
+                  <ChevronRight className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Page Indicator */}
+              <div className="text-center mt-4">
+                <span className="text-sm text-slate-500">
+                  Menampilkan {currentPage * itemsPerPage + 1}-{Math.min((currentPage + 1) * itemsPerPage, featuredBarang.length)} dari {featuredBarang.length} barang
+                </span>
+              </div>
+            </>
+          )}
+
+          {/* Tampilkan pesan jika tidak ada barang */}
+          {featuredBarang.length === 0 && !loading && (
+            <div className="text-center py-8">
+              <p className="text-slate-600">Tidak ada barang populer yang tersedia saat ini.</p>
             </div>
-
-            {/* Next Button */}
-            <button
-              onClick={nextPage}
-              className="flex items-center space-x-2 px-4 py-2 rounded-xl bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition-all duration-300"
-            >
-              <span className="hidden sm:block">Selanjutnya</span>
-              <ChevronRight className="w-5 h-5" />
-            </button>
-          </div>
-
-          {/* Page Indicator */}
-          <div className="text-center mt-4">
-            <span className="text-sm text-slate-500">
-              Menampilkan {currentPage * itemsPerPage + 1}-{Math.min((currentPage + 1) * itemsPerPage, featuredBarang.length)} dari {featuredBarang.length} barang
-            </span>
-          </div>
+          )}
         </div>
 
         {/* CTA Section */}
         <div className="text-center mt-12">
-          <button className="bg-linear-to-r from-blue-600 to-indigo-600 text-white px-8 py-4 rounded-2xl font-semibold shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300">
+          <button 
+            onClick={() => navigate('/katalog')}
+            className="bg-linear-to-r from-blue-600 to-indigo-600 text-white px-8 py-4 rounded-2xl font-semibold shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300"
+          >
             Lihat Semua Barang
           </button>
         </div>

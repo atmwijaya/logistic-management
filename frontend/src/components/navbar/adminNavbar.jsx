@@ -11,7 +11,7 @@ const NavbarAdmin = () => {
   const navItems = [
     { path: "/admin", name: "Beranda" },
     { path: "/admin/daftarkatalog", name: "Katalog" },
-    { path: "/admin/daftarpinjam", name: "Peminjaman" },
+    { path: "/admin/daftarpeminjam", name: "Peminjaman" },
     { path: "/admin/settings", name: "Settings" },
   ];
 

@@ -1,0 +1,358 @@
+import { createClient } from '@supabase/supabase-js';
+
+const supabase = createClient(
+  import.meta.env.VITE_SUPABASE_URL, 
+  import.meta.env.VITE_SUPABASE_ANON_KEY
+);
+
+const BASE_URL = "http://localhost:3000/api/peminjaman";
+
+// Helper function untuk handle fetch
+const fetchAPI = async (url, options = {}) => {
+  try {
+    console.log('🚀 API Call:', {
+      url,
+      method: options.method || 'GET',
+      body: options.body
+    });
+    
+    const response = await fetch(url, {
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+      ...options,
+    });
+
+    console.log('📡 API Response status:', response.status);
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ API Error Response:', errorText);
+      
+      let errorData;
+      try {
+        errorData = JSON.parse(errorText);
+      } catch {
+        errorData = { message: errorText || `HTTP error! status: ${response.status}` };
+      }
+      
+      throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+    }
+
+    const result = await response.json();
+    console.log('✅ API Success Response:', result);
+    return result;
+  } catch (error) {
+    console.error('💥 API Fetch Error:', error);
+    throw error;
+  }
+};
+
+// Helper untuk build query parameters
+const buildQueryString = (params = {}) => {
+  const cleanParams = Object.fromEntries(
+    Object.entries(params).filter(([_, value]) => value !== '' && value !== null && value !== undefined)
+  );
+  const queryString = new URLSearchParams(cleanParams).toString();
+  return queryString ? `?${queryString}` : '';
+};
+
+const peminjamanAPI = {
+  // Get all peminjaman dengan filter dan pagination
+  getAll: async (params = {}) => {
+    try {
+      const queryString = buildQueryString(params);
+      const url = `${BASE_URL}${queryString}`;
+      
+      console.log(`📋 Fetching all peminjaman with params:`, params);
+      const result = await fetchAPI(url);
+      console.log(`📋 Retrieved ${result.data?.length || 0} peminjaman records`);
+      return result;
+    } catch (error) {
+      console.error('❌ Error in getAll:', error);
+      throw error;
+    }
+  },
+
+  // Get peminjaman by ID
+  getById: async (id) => {
+    try {
+      console.log(`🔍 Fetching peminjaman by ID: ${id}`);
+      const result = await fetchAPI(`${BASE_URL}/${id}`);
+      console.log(`🔍 Retrieved peminjaman:`, result.data);
+      return result;
+    } catch (error) {
+      console.error(`❌ Error fetching peminjaman ${id}:`, error);
+      throw error;
+    }
+  },
+
+  // Create new peminjaman
+  create: async (data) => {
+    try {
+      console.log('🆕 Creating new peminjaman:', data);
+      const result = await fetchAPI(BASE_URL, {
+        method: "POST",
+        body: JSON.stringify(data),
+      });
+      console.log('🆕 Peminjaman created successfully:', result.data);
+      return result;
+    } catch (error) {
+      console.error('❌ Error creating peminjaman:', error);
+      throw error;
+    }
+  },
+
+  // Update status peminjaman - FIXED VERSION
+  updateStatus: async (id, status) => {
+    try {
+      console.log(`🔄 Updating status for ${id} to ${status}`);
+      
+      if (!id) {
+        throw new Error('ID is required for status update');
+      }
+      
+      if (!['pending', 'approved', 'rejected'].includes(status)) {
+        throw new Error(`Invalid status: ${status}. Must be one of: pending, approved, rejected`);
+      }
+
+      const result = await fetchAPI(`${BASE_URL}/${id}/status`, {
+        method: "PATCH",
+        body: JSON.stringify({ status }),
+      });
+      
+      console.log(`🔄 Status updated successfully:`, result.data);
+      return result;
+    } catch (error) {
+      console.error(`❌ Error updating status for ${id}:`, error);
+      throw error;
+    }
+  },
+
+  // Delete peminjaman
+  delete: async (id) => {
+    try {
+      console.log(`🗑️ Deleting peminjaman: ${id}`);
+      const result = await fetchAPI(`${BASE_URL}/${id}`, {
+        method: "DELETE",
+      });
+      console.log(`🗑️ Peminjaman deleted successfully: ${id}`);
+      return result;
+    } catch (error) {
+      console.error(`❌ Error deleting peminjaman ${id}:`, error);
+      throw error;
+    }
+  },
+
+  // Search peminjaman
+  search: async (searchTerm, params = {}) => {
+    try {
+      const queryParams = { ...params, search: searchTerm };
+      const queryString = buildQueryString(queryParams);
+      const url = `${BASE_URL}${queryString}`;
+      
+      console.log(`🔎 Searching peminjaman for: "${searchTerm}"`);
+      const result = await fetchAPI(url);
+      console.log(`🔎 Search found ${result.data?.length || 0} results`);
+      return result;
+    } catch (error) {
+      console.error(`❌ Error searching for "${searchTerm}":`, error);
+      throw error;
+    }
+  },
+
+  // Get peminjaman by status
+  getByStatus: async (status, params = {}) => {
+    try {
+      const queryParams = { ...params, status };
+      const queryString = buildQueryString(queryParams);
+      const url = `${BASE_URL}${queryString}`;
+      
+      console.log(`📊 Fetching peminjaman with status: ${status}`);
+      const result = await fetchAPI(url);
+      console.log(`📊 Found ${result.data?.length || 0} peminjaman with status ${status}`);
+      return result;
+    } catch (error) {
+      console.error(`❌ Error fetching peminjaman with status ${status}:`, error);
+      throw error;
+    }
+  },
+
+  // Get statistics (opsional, untuk dashboard)
+  getStats: async () => {
+    try {
+      console.log('📈 Fetching peminjaman statistics');
+      const result = await fetchAPI(`${BASE_URL}/stats`);
+      console.log('📈 Statistics retrieved:', result.data);
+      return result;
+    } catch (error) {
+      console.error('❌ Error fetching statistics:', error);
+      // Return default stats if endpoint doesn't exist
+      return {
+        success: true,
+        data: {
+          total: 0,
+          pending: 0,
+          approved: 0,
+          rejected: 0
+        }
+      };
+    }
+  },
+
+  // Bulk update status (opsional)
+  bulkUpdateStatus: async (ids, status) => {
+    try {
+      console.log(`🔄 Bulk updating ${ids.length} records to status: ${status}`);
+      const result = await fetchAPI(`${BASE_URL}/bulk/status`, {
+        method: "PATCH",
+        body: JSON.stringify({ ids, status }),
+      });
+      console.log(`🔄 Bulk update successful: ${result.data?.updated || 0} records updated`);
+      return result;
+    } catch (error) {
+      console.error('❌ Error in bulk update:', error);
+      throw error;
+    }
+  },
+
+  // Export data to CSV/Excel (opsional)
+  exportData: async (params = {}) => {
+    try {
+      const queryString = buildQueryString(params);
+      const url = `${BASE_URL}/export${queryString}`;
+      
+      console.log('📤 Exporting peminjaman data');
+      const response = await fetch(url);
+      
+      if (!response.ok) {
+        throw new Error(`Export failed: ${response.status}`);
+      }
+      
+      const blob = await response.blob();
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.download = `peminjaman-export-${new Date().toISOString().split('T')[0]}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(downloadUrl);
+      
+      console.log('📤 Export completed successfully');
+      return { success: true };
+    } catch (error) {
+      console.error('❌ Error exporting data:', error);
+      throw error;
+    }
+  },
+
+  // Health check (opsional)
+  healthCheck: async () => {
+    try {
+      console.log('🏥 Performing API health check');
+      const result = await fetchAPI(`${BASE_URL}/health`);
+      console.log('🏥 API health check passed');
+      return result;
+    } catch (error) {
+      console.error('❌ API health check failed:', error);
+      throw error;
+    }
+  },
+
+  // Get available status options
+  getStatusOptions: () => {
+    return [
+      { value: 'pending', label: 'Menunggu' },
+      { value: 'approved', label: 'Disetujui' },
+      { value: 'rejected', label: 'Ditolak' }
+    ];
+  },
+
+  // Validate peminjaman data before submission
+  validatePeminjaman: (data) => {
+    const errors = [];
+    
+    if (!data.nama_lengkap?.trim()) {
+      errors.push('Nama lengkap wajib diisi');
+    }
+    
+    if (!data.nim?.trim()) {
+      errors.push('NIM wajib diisi');
+    }
+    
+    if (!data.barang_id) {
+      errors.push('Barang wajib dipilih');
+    }
+    
+    if (!data.tanggal_mulai) {
+      errors.push('Tanggal mulai wajib diisi');
+    }
+    
+    if (!data.tanggal_selesai) {
+      errors.push('Tanggal selesai wajib diisi');
+    }
+    
+    if (!data.telepon?.trim()) {
+      errors.push('Nomor telepon wajib diisi');
+    }
+    
+    return {
+      isValid: errors.length === 0,
+      errors
+    };
+  },
+
+  // Format data for submission
+  formatPeminjamanData: (rawData) => {
+    return {
+      nama_lengkap: rawData.nama_lengkap?.trim() || '',
+      nim: rawData.nim?.trim() || '',
+      jurusan: rawData.jurusan?.trim() || '',
+      instansi: rawData.instansi?.trim() || '',
+      barang_id: rawData.barang_id,
+      jumlah_pinjam: parseInt(rawData.jumlah_pinjam) || 1,
+      tanggal_mulai: rawData.tanggal_mulai,
+      tanggal_selesai: rawData.tanggal_selesai,
+      lama_pinjam: parseInt(rawData.lama_pinjam) || 1,
+      total_biaya: parseFloat(rawData.total_biaya) || 0,
+      catatan: rawData.catatan?.trim() || '',
+      telepon: rawData.telepon?.replace(/\s/g, '') || '',
+      email: rawData.email?.trim() || ''
+    };
+  },
+
+  // Export untuk penggunaan langsung dengan Supabase (jika diperlukan)
+  supabase,
+
+  // Utility functions
+  utils: {
+    // Format date for display
+    formatDate: (dateString) => {
+      if (!dateString) return '-';
+      return new Date(dateString).toLocaleDateString('id-ID', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+      });
+    },
+
+    // Format currency
+    formatCurrency: (amount) => {
+      if (!amount) return 'Rp 0';
+      return new Intl.NumberFormat('id-ID', {
+        style: 'currency',
+        currency: 'IDR',
+        minimumFractionDigits: 0
+      }).format(amount);
+    },
+
+    // Calculate total cost
+    calculateTotalCost: (hargaPerHari, jumlahPinjam, lamaPinjam) => {
+      return (parseFloat(hargaPerHari) || 0) * (parseInt(jumlahPinjam) || 1) * (parseInt(lamaPinjam) || 1);
+    }
+  }
+};
+
+export default peminjamanAPI;

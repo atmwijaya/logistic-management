@@ -2,6 +2,7 @@ import express from "express";
 import dotenv from "dotenv";
 import cors from "cors";
 import katalogRoutes from "./routes/katalogRoute.js";
+import peminjamanRoutes from "./routes/peminjamanRoute.js";
 
 dotenv.config();
 
@@ -11,6 +12,7 @@ app.use(cors());
 
 //routes
 app.use("/api/katalog", katalogRoutes);
+app.use("/api/peminjaman", peminjamanRoutes);
 
 const port = process.env.PORT || 3000;
 app.listen(port, () => {
