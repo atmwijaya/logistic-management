@@ -150,7 +150,8 @@ const DaftarPeminjam = () => {
 
       console.log("🟢 APPROVE API RESULT:", result);
 
-      if (result.success) {
+      // Handle different response formats
+      if (result.success || result.data) {
         console.log("🟢 Update successful, updating UI...");
 
         // Immediate UI update
@@ -184,7 +185,8 @@ const DaftarPeminjam = () => {
 
       console.log("🔴 REJECT API RESULT:", result);
 
-      if (result.success) {
+      // Handle different response formats
+      if (result.success || result.data) {
         console.log("🔴 Update successful, updating UI...");
 
         // Immediate UI update

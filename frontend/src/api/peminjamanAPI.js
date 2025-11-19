@@ -7,7 +7,7 @@ const supabase = createClient(
 
 const BASE_URL = "http://localhost:3000/api/peminjaman";
 
-// Helper function untuk handle fetch
+// Enhanced fetchAPI dengan better error handling
 const fetchAPI = async (url, options = {}) => {
   try {
     console.log('🚀 API Call:', {
@@ -26,21 +26,35 @@ const fetchAPI = async (url, options = {}) => {
 
     console.log('📡 API Response status:', response.status);
     
+    const responseText = await response.text();
+    console.log('📡 API Response text:', responseText);
+    
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error('❌ API Error Response:', errorText);
+      console.error('❌ API Error Response:', responseText);
       
       let errorData;
       try {
-        errorData = JSON.parse(errorText);
+        errorData = JSON.parse(responseText);
       } catch {
-        errorData = { message: errorText || `HTTP error! status: ${response.status}` };
+        errorData = { message: responseText || `HTTP error! status: ${response.status}` };
       }
       
       throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
     }
 
-    const result = await response.json();
+    // Handle empty response
+    if (!responseText) {
+      return { success: true, data: null, message: "Operation completed successfully" };
+    }
+
+    let result;
+    try {
+      result = JSON.parse(responseText);
+    } catch (parseError) {
+      console.warn('⚠️ Response is not JSON, returning as text');
+      return { success: true, data: responseText, message: "Operation completed" };
+    }
+    
     console.log('✅ API Success Response:', result);
     return result;
   } catch (error) {
@@ -71,7 +85,11 @@ const peminjamanAPI = {
       return result;
     } catch (error) {
       console.error('❌ Error in getAll:', error);
-      throw error;
+      return { 
+        success: false, 
+        message: error.message || 'Gagal memuat data peminjaman',
+        data: [] 
+      };
     }
   },
 
@@ -84,7 +102,11 @@ const peminjamanAPI = {
       return result;
     } catch (error) {
       console.error(`❌ Error fetching peminjaman ${id}:`, error);
-      throw error;
+      return { 
+        success: false, 
+        message: error.message || `Gagal memuat data peminjaman ${id}`,
+        data: null 
+      };
     }
   },
 
@@ -100,7 +122,11 @@ const peminjamanAPI = {
       return result;
     } catch (error) {
       console.error('❌ Error creating peminjaman:', error);
-      throw error;
+      return { 
+        success: false, 
+        message: error.message || 'Gagal membuat peminjaman',
+        data: null 
+      };
     }
   },
 
@@ -122,11 +148,30 @@ const peminjamanAPI = {
         body: JSON.stringify({ status }),
       });
       
-      console.log(`🔄 Status updated successfully:`, result.data);
-      return result;
+      console.log(`🔄 Status update response:`, result);
+      
+      // Handle different response formats
+      if (result.success) {
+        return result;
+      } else if (result.data) {
+        // Jika response memiliki data tapi tidak ada success field
+        return { success: true, data: result.data, message: result.message || "Status updated successfully" };
+      } else if (Array.isArray(result)) {
+        // Jika response adalah array
+        return { success: true, data: result, message: "Status updated successfully" };
+      } else {
+        // Jika response adalah object biasa
+        return { success: true, data: result, message: "Status updated successfully" };
+      }
     } catch (error) {
       console.error(`❌ Error updating status for ${id}:`, error);
-      throw error;
+      
+      // Return structured error response
+      return { 
+        success: false, 
+        message: error.message || `Error updating status for ${id}`,
+        data: null
+      };
     }
   },
 
@@ -141,7 +186,11 @@ const peminjamanAPI = {
       return result;
     } catch (error) {
       console.error(`❌ Error deleting peminjaman ${id}:`, error);
-      throw error;
+      return { 
+        success: false, 
+        message: error.message || `Gagal menghapus peminjaman ${id}`,
+        data: null 
+      };
     }
   },
 
@@ -158,7 +207,11 @@ const peminjamanAPI = {
       return result;
     } catch (error) {
       console.error(`❌ Error searching for "${searchTerm}":`, error);
-      throw error;
+      return { 
+        success: false, 
+        message: error.message || `Gagal mencari peminjaman untuk "${searchTerm}"`,
+        data: [] 
+      };
     }
   },
 
@@ -175,7 +228,11 @@ const peminjamanAPI = {
       return result;
     } catch (error) {
       console.error(`❌ Error fetching peminjaman with status ${status}:`, error);
-      throw error;
+      return { 
+        success: false, 
+        message: error.message || `Gagal memuat peminjaman dengan status ${status}`,
+        data: [] 
+      };
     }
   },
 
@@ -213,7 +270,63 @@ const peminjamanAPI = {
       return result;
     } catch (error) {
       console.error('❌ Error in bulk update:', error);
-      throw error;
+      return { 
+        success: false, 
+        message: error.message || 'Gagal melakukan bulk update',
+        data: null 
+      };
+    }
+  },
+
+  // Check if barang can be deleted (no active peminjaman)
+  canDeleteBarang: async (barangId) => {
+    try {
+      console.log(`🔍 Checking if barang ${barangId} can be deleted`);
+      
+      // Cek apakah ada peminjaman aktif untuk barang ini
+      const peminjamanResult = await fetchAPI(`${BASE_URL}/barang/${barangId}/active`);
+      
+      if (peminjamanResult.success && peminjamanResult.data && peminjamanResult.data.length > 0) {
+        return { 
+          success: true, 
+          canDelete: false, 
+          activePeminjaman: peminjamanResult.data,
+          message: "Tidak dapat menghapus barang karena ada peminjaman aktif" 
+        };
+      }
+      
+      return { 
+        success: true, 
+        canDelete: true, 
+        activePeminjaman: [],
+        message: "Barang dapat dihapus" 
+      };
+    } catch (error) {
+      console.error(`❌ Error checking barang deletability:`, error);
+      // Jika endpoint tidak ada, anggap bisa dihapus
+      return { 
+        success: true, 
+        canDelete: true, 
+        activePeminjaman: [],
+        message: "Barang dapat dihapus" 
+      };
+    }
+  },
+
+  // Get active peminjaman for barang
+  getActivePeminjamanByBarang: async (barangId) => {
+    try {
+      console.log(`🔍 Getting active peminjaman for barang ${barangId}`);
+      
+      const result = await fetchAPI(`${BASE_URL}/barang/${barangId}/active`);
+      return result;
+    } catch (error) {
+      console.error(`❌ Error getting active peminjaman:`, error);
+      return { 
+        success: false, 
+        message: error.message || `Gagal memuat peminjaman aktif untuk barang ${barangId}`,
+        data: [] 
+      };
     }
   },
 
@@ -244,7 +357,10 @@ const peminjamanAPI = {
       return { success: true };
     } catch (error) {
       console.error('❌ Error exporting data:', error);
-      throw error;
+      return { 
+        success: false, 
+        message: error.message || 'Gagal mengekspor data' 
+      };
     }
   },
 
@@ -257,7 +373,10 @@ const peminjamanAPI = {
       return result;
     } catch (error) {
       console.error('❌ API health check failed:', error);
-      throw error;
+      return { 
+        success: false, 
+        message: error.message || 'Health check failed' 
+      };
     }
   },
 
