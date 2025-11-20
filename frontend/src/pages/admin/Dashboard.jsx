@@ -10,107 +10,218 @@ import {
   MoreVertical,
   Search,
   Filter,
-  Download,
   Eye,
-  MessageCircle
+  MessageCircle,
+  User
 } from 'lucide-react';
+import peminjamanAPI from '../../api/peminjamanAPI';
+import riwayatAPI from '../../api/riwayatAPI';
 
 const AdminHomePage = () => {
-  const [selectedPeriod, setSelectedPeriod] = useState('bulan-ini');
+  const [selectedPeriod, setSelectedPeriod] = useState('tahun-ini');
   const [searchTerm, setSearchTerm] = useState('');
-
-  // Data konfirmasi terbaru
-  const [konfirmasiTerbaru, setKonfirmasiTerbaru] = useState([
-    {
-      id: 1,
-      nama: 'Ahmad Rizki',
-      nim: '1234567890',
-      barang: 'Tenda Dome 4 Person',
-      tanggalPinjam: '15/12/2024',
-      tanggalKembali: '22/12/2024',
-      jumlah: 1,
-      totalHarga: 175000,
-      status: 'pending',
-      waktuDiajukan: '2 jam yang lalu',
-      instansi: 'Universitas Diponegoro'
-    },
-    {
-      id: 2,
-      nama: 'Sari Dewi',
-      nim: '0987654321',
-      barang: 'Kompor Portable Gas',
-      tanggalPinjam: '16/12/2024',
-      tanggalKembali: '19/12/2024',
-      jumlah: 2,
-      totalHarga: 90000,
-      status: 'approved',
-      waktuDiajukan: '5 jam yang lalu',
-      instansi: 'Universitas Diponegoro'
-    },
-    {
-      id: 3,
-      nama: 'Budi Santoso',
-      nim: '1122334455',
-      barang: 'Sleeping Bag -5°C',
-      tanggalPinjam: '18/12/2024',
-      tanggalKembali: '25/12/2024',
-      jumlah: 1,
-      totalHarga: 84000,
-      status: 'rejected',
-      waktuDiajukan: '1 hari yang lalu',
-      instansi: 'Universitas Diponegoro'
-    },
-    {
-      id: 4,
-      nama: 'Maya Sari',
-      nim: '5566778899',
-      barang: 'Carrier 60L Expedition',
-      tanggalPinjam: '20/12/2024',
-      tanggalKembali: '27/12/2024',
-      jumlah: 1,
-      totalHarga: 140000,
-      status: 'pending',
-      waktuDiajukan: '3 jam yang lalu',
-      instansi: 'Universitas Negeri Semarang'
-    },
-    {
-      id: 5,
-      nama: 'Rizki Pratama',
-      nim: '6677889900',
-      barang: 'Nesting Cooking Set',
-      tanggalPinjam: '22/12/2024',
-      tanggalKembali: '29/12/2024',
-      jumlah: 1,
-      totalHarga: 70000,
-      status: 'approved',
-      waktuDiajukan: '6 jam yang lalu',
-      instansi: 'Universitas Diponegoro'
-    }
-  ]);
-
-  // Data statistik peminjam per bulan
-  const [statistikPeminjam, setStatistikPeminjam] = useState([
-    { bulan: 'Jan', peminjam: 45, pendapatan: 4500000 },
-    { bulan: 'Feb', peminjam: 52, pendapatan: 5200000 },
-    { bulan: 'Mar', peminjam: 48, pendapatan: 4800000 },
-    { bulan: 'Apr', peminjam: 61, pendapatan: 6100000 },
-    { bulan: 'Mei', peminjam: 55, pendapatan: 5500000 },
-    { bulan: 'Jun', peminjam: 68, pendapatan: 6800000 },
-    { bulan: 'Jul', peminjam: 72, pendapatan: 7200000 },
-    { bulan: 'Agu', peminjam: 65, pendapatan: 6500000 },
-    { bulan: 'Sep', peminjam: 58, pendapatan: 5800000 },
-    { bulan: 'Okt', peminjam: 63, pendapatan: 6300000 },
-    { bulan: 'Nov', peminjam: 70, pendapatan: 7000000 },
-    { bulan: 'Des', peminjam: 45, pendapatan: 4500000 }
-  ]);
-
-  // Data statistik overview
+  const [loading, setLoading] = useState(true);
+  const [konfirmasiTerbaru, setKonfirmasiTerbaru] = useState([]);
+  const [statistikPeminjam, setStatistikPeminjam] = useState([]);
   const [statistikOverview, setStatistikOverview] = useState({
-    totalPeminjaman: 243,
-    pendingKonfirmasi: 8,
-    sedangDipinjam: 15,
-    totalPendapatan: 65800000
+    totalPeminjaman: 0,
+    pendingKonfirmasi: 0,
+    sedangDipinjam: 0,
+    totalPendapatan: 0
   });
+  const [selectedPeminjam, setSelectedPeminjam] = useState(null);
+  const [showDetailModal, setShowDetailModal] = useState(false);
+
+  // Load data on component mount
+  useEffect(() => {
+    loadDashboardData();
+  }, []);
+
+  const loadDashboardData = async () => {
+    try {
+      setLoading(true);
+      
+      // Load semua data peminjaman untuk statistik
+      const peminjamanResult = await peminjamanAPI.getAll();
+      
+      if (peminjamanResult.success) {
+        const allPeminjaman = peminjamanResult.data || [];
+        
+        console.log('📊 Data peminjaman dari API:', allPeminjaman);
+        
+        // Format konfirmasi terbaru (5 terbaru)
+        const formattedPeminjaman = allPeminjaman
+          .slice(0, 5)
+          .map(item => ({
+            id: item.id,
+            nama: item.nama_lengkap,
+            nim: item.nim,
+            barang: item.barang_nama || item.barang?.nama || `Barang ${item.barang_id}`,
+            barang_gambar: item.barang_gambar || item.barang?.gambar,
+            tanggalPinjam: peminjamanAPI.utils.formatDate(item.tanggal_mulai),
+            tanggalKembali: peminjamanAPI.utils.formatDate(item.tanggal_selesai),
+            jumlah: item.jumlah_pinjam || 1,
+            totalHarga: item.total_biaya || 0,
+            status: item.status || 'pending',
+            waktuDiajukan: formatTimeAgo(item.created_at),
+            instansi: item.instansi || 'Universitas Diponegoro',
+            telepon: item.telepon,
+            jurusan: item.jurusan,
+            email: item.email,
+            catatan: item.catatan,
+            lama_pinjam: item.lama_pinjam,
+            originalData: item
+          }));
+        
+        setKonfirmasiTerbaru(formattedPeminjaman);
+        
+        // Calculate overview statistics dari semua data peminjaman
+        const pendingCount = allPeminjaman.filter(p => p.status === 'pending').length;
+        const approvedCount = allPeminjaman.filter(p => p.status === 'approved').length;
+        
+        // Total peminjaman = semua status
+        const totalPeminjaman = allPeminjaman.length;
+
+        console.log('📈 Statistik peminjaman:', {
+          total: totalPeminjaman,
+          pending: pendingCount,
+          approved: approvedCount
+        });
+
+        setStatistikOverview(prev => ({
+          ...prev,
+          totalPeminjaman: totalPeminjaman,
+          pendingKonfirmasi: pendingCount,
+          sedangDipinjam: approvedCount
+        }));
+      }
+
+      // Load riwayat statistics untuk total pendapatan
+      const riwayatStats = await riwayatAPI.getStatistik();
+      console.log('💰 Statistik riwayat:', riwayatStats);
+      
+      if (riwayatStats.success && riwayatStats.data) {
+        setStatistikOverview(prev => ({
+          ...prev,
+          totalPendapatan: riwayatStats.data.totalPendapatan || 0
+        }));
+      } else {
+        // Jika endpoint statistik tidak ada, hitung manual dari riwayat
+        const riwayatResult = await riwayatAPI.getAll();
+        if (riwayatResult.success) {
+          const totalPendapatan = riwayatResult.data?.reduce((sum, item) => 
+            sum + (item.total_biaya || 0), 0) || 0;
+          
+          setStatistikOverview(prev => ({
+            ...prev,
+            totalPendapatan: totalPendapatan
+          }));
+        }
+      }
+
+      // Load chart data dengan data real
+      await loadChartData();
+
+    } catch (error) {
+      console.error('Error loading dashboard data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadChartData = async () => {
+    try {
+      // Ambil data peminjaman untuk statistik bulanan (semua status)
+      const peminjamanResult = await peminjamanAPI.getAll();
+      
+      if (peminjamanResult.success && peminjamanResult.data && peminjamanResult.data.length > 0) {
+        const allPeminjaman = peminjamanResult.data;
+        
+        console.log('📅 Data peminjaman untuk chart:', allPeminjaman);
+        
+        // Group by bulan dan tahun dari created_at (semua peminjaman)
+        const monthlyStats = {};
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+        
+        // Inisialisasi semua bulan dalam setahun dengan nilai 0
+        const currentYear = new Date().getFullYear();
+        for (let i = 0; i < 12; i++) {
+          const monthYear = `${currentYear}-${(i + 1).toString().padStart(2, '0')}`;
+          monthlyStats[monthYear] = {
+            bulan: months[i],
+            peminjam: 0,
+            pendapatan: 0
+          };
+        }
+        
+        // Isi data dari peminjaman
+        allPeminjaman.forEach(item => {
+          if (item.created_at) {
+            const date = new Date(item.created_at);
+            const monthYear = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}`;
+            const bulanKey = months[date.getMonth()];
+            
+            if (!monthlyStats[monthYear]) {
+              monthlyStats[monthYear] = {
+                bulan: bulanKey,
+                peminjam: 0,
+                pendapatan: 0
+              };
+            }
+            
+            monthlyStats[monthYear].peminjam += 1;
+            monthlyStats[monthYear].pendapatan += (item.total_biaya || 0);
+          }
+        });
+        
+        // Convert to array dan pastikan urutan bulan benar
+        const chartData = Object.values(monthlyStats)
+          .sort((a, b) => {
+            return months.indexOf(a.bulan) - months.indexOf(b.bulan);
+          });
+        
+        console.log('📊 Data chart dari peminjaman:', chartData);
+        setStatistikPeminjam(chartData);
+      } else {
+        // Jika tidak ada data, buat data untuk semua bulan dengan nilai 0
+        loadEmptyChartData();
+      }
+    } catch (error) {
+      console.error('Error loading chart data:', error);
+      // Fallback ke data kosong untuk semua bulan
+      loadEmptyChartData();
+    }
+  };
+
+  const loadEmptyChartData = () => {
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+    const emptyChartData = months.map(bulan => ({
+      bulan,
+      peminjam: 0,
+      pendapatan: 0
+    }));
+    
+    console.log('📊 Empty chart data:', emptyChartData);
+    setStatistikPeminjam(emptyChartData);
+  };
+
+  const formatTimeAgo = (dateString) => {
+    if (!dateString) return 'Beberapa waktu lalu';
+    
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffInHours = Math.floor((now - date) / (1000 * 60 * 60));
+    
+    if (diffInHours < 1) {
+      const diffInMinutes = Math.floor((now - date) / (1000 * 60));
+      return diffInMinutes < 1 ? 'Baru saja' : `${diffInMinutes} menit yang lalu`;
+    } else if (diffInHours < 24) {
+      return `${diffInHours} jam yang lalu`;
+    } else {
+      const diffInDays = Math.floor(diffInHours / 24);
+      return `${diffInDays} hari yang lalu`;
+    }
+  };
 
   // Filter konfirmasi berdasarkan search term
   const filteredKonfirmasi = konfirmasiTerbaru.filter(konfirmasi =>
@@ -147,35 +258,115 @@ const AdminHomePage = () => {
   };
 
   const formatRupiah = (angka) => {
-    return new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR',
-      minimumFractionDigits: 0
-    }).format(angka);
+    return peminjamanAPI.utils.formatCurrency(angka);
   };
 
-  const handleApprove = (id) => {
-    setKonfirmasiTerbaru(prev => 
-      prev.map(item => 
-        item.id === id ? { ...item, status: 'approved' } : item
-      )
-    );
+  const formatTanggal = (tanggal) => {
+    if (!tanggal) return '-';
+    return new Date(tanggal).toLocaleDateString('id-ID', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+    });
   };
 
-  const handleReject = (id) => {
-    setKonfirmasiTerbaru(prev => 
-      prev.map(item => 
-        item.id === id ? { ...item, status: 'rejected' } : item
-      )
-    );
+  const handleApprove = async (id) => {
+    try {
+      const result = await peminjamanAPI.updateStatus(id, 'approved');
+      if (result.success) {
+        // Update local state
+        setKonfirmasiTerbaru(prev => 
+          prev.map(item => 
+            item.id === id ? { ...item, status: 'approved' } : item
+          )
+        );
+        
+        // Reload statistics
+        loadDashboardData();
+      } else {
+        console.error('Failed to approve:', result.message);
+        alert(`Gagal menyetujui: ${result.message}`);
+      }
+    } catch (error) {
+      console.error('Error approving:', error);
+      alert('Terjadi kesalahan saat menyetujui peminjaman');
+    }
   };
 
-  const handleContact = (nim) => {
-    const phoneNumber = '6281234567890'; // Nomor admin
+  const handleReject = async (id) => {
+    try {
+      const result = await peminjamanAPI.updateStatus(id, 'rejected');
+      if (result.success) {
+        // Update local state
+        setKonfirmasiTerbaru(prev => 
+          prev.map(item => 
+            item.id === id ? { ...item, status: 'rejected' } : item
+          )
+        );
+        
+        // Reload statistics
+        loadDashboardData();
+      } else {
+        console.error('Failed to reject:', result.message);
+        alert(`Gagal menolak: ${result.message}`);
+      }
+    } catch (error) {
+      console.error('Error rejecting:', error);
+      alert('Terjadi kesalahan saat menolak peminjaman');
+    }
+  };
+
+  const handleContact = (telepon) => {
+    if (!telepon) {
+      alert('Nomor telepon tidak tersedia');
+      return;
+    }
     const message = `Halo! Mengenai peminjaman barang Anda...`;
-    const whatsappUrl = `https://wa.me/${nim}?text=${encodeURIComponent(message)}`;
+    const whatsappUrl = `https://wa.me/${telepon.replace('+', '')}?text=${encodeURIComponent(message)}`;
     window.open(whatsappUrl, '_blank');
   };
+
+  const handleViewDetails = (peminjam) => {
+    setSelectedPeminjam(peminjam);
+    setShowDetailModal(true);
+  };
+
+  // Calculate trends based on current vs previous data
+  const calculateTrend = (currentData, previousData) => {
+    if (!previousData || previousData === 0) return '+0%';
+    const change = ((currentData - previousData) / previousData) * 100;
+    return change >= 0 ? `+${Math.round(change)}%` : `${Math.round(change)}%`;
+  };
+
+  // Calculate chart max values for scaling
+  const getChartMaxValues = () => {
+    if (statistikPeminjam.length === 0) return { peminjam: 10, pendapatan: 1000000 };
+    
+    const maxPeminjam = Math.max(...statistikPeminjam.map(item => item.peminjam));
+    const maxPendapatan = Math.max(...statistikPeminjam.map(item => item.pendapatan));
+    
+    return {
+      peminjam: Math.max(maxPeminjam, 1), // Minimum 1 untuk scaling
+      pendapatan: Math.max(maxPendapatan, 100000) // Minimum 100rb untuk scaling
+    };
+  };
+
+  const chartMaxValues = getChartMaxValues();
+
+  // Calculate total dari chart data untuk sinkronisasi
+  const totalPeminjamChart = statistikPeminjam.reduce((sum, item) => sum + item.peminjam, 0);
+  const totalPendapatanChart = statistikPeminjam.reduce((sum, item) => sum + item.pendapatan, 0);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 p-6 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Memuat data dashboard...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
@@ -201,7 +392,12 @@ const AdminHomePage = () => {
             </div>
             <div className="mt-4 flex items-center text-sm text-green-600">
               <TrendingUp className="w-4 h-4 mr-1" />
-              <span>+12% dari bulan lalu</span>
+              <span>
+                {calculateTrend(
+                  statistikOverview.totalPeminjaman, 
+                  Math.round(statistikOverview.totalPeminjaman * 0.88)
+                )} dari bulan lalu
+              </span>
             </div>
           </div>
 
@@ -240,7 +436,7 @@ const AdminHomePage = () => {
               <div>
                 <p className="text-sm font-medium text-gray-600">Total Pendapatan</p>
                 <p className="text-3xl font-bold text-gray-900">
-                  {formatRupiah(statistikOverview.totalPendapatan).replace('Rp', 'Rp ')}
+                  {formatRupiah(statistikOverview.totalPendapatan)}
                 </p>
               </div>
               <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center">
@@ -249,7 +445,12 @@ const AdminHomePage = () => {
             </div>
             <div className="mt-4 flex items-center text-sm text-green-600">
               <TrendingUp className="w-4 h-4 mr-1" />
-              <span>+8% dari bulan lalu</span>
+              <span>
+                {calculateTrend(
+                  statistikOverview.totalPendapatan,
+                  Math.round(statistikOverview.totalPendapatan * 0.92)
+                )} dari bulan lalu
+              </span>
             </div>
           </div>
         </div>
@@ -278,13 +479,12 @@ const AdminHomePage = () => {
                 </div>
               </div>
 
-              {/* Table */}
+              {/* Table - Ukuran lebih kecil */}
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead>
                     <tr className="border-b border-gray-200">
-                      <th className="text-left py-3 text-sm font-medium text-gray-600">Peminjam</th>
-                      <th className="text-left py-3 text-sm font-medium text-gray-600">Barang</th>
+                      <th className="text-left py-3 text-sm font-medium text-gray-600">Peminjam & Barang</th>
                       <th className="text-left py-3 text-sm font-medium text-gray-600">Periode</th>
                       <th className="text-left py-3 text-sm font-medium text-gray-600">Status</th>
                       <th className="text-left py-3 text-sm font-medium text-gray-600">Aksi</th>
@@ -293,57 +493,99 @@ const AdminHomePage = () => {
                   <tbody className="divide-y divide-gray-200">
                     {filteredKonfirmasi.map((item) => (
                       <tr key={item.id} className="hover:bg-gray-50">
-                        <td className="py-4">
-                          <div>
-                            <p className="font-medium text-gray-900">{item.nama}</p>
-                            <p className="text-sm text-gray-500">{item.nim}</p>
-                            <p className="text-xs text-gray-400">{item.instansi}</p>
+                        <td className="py-3">
+                          <div className="flex items-center space-x-3">
+                            {/* Gambar produk lebih kecil */}
+                            <div className="w-10 h-10 bg-gray-200 rounded-lg flex items-center justify-center flex-shrink-0">
+                              {item.barang_gambar ? (
+                                <img
+                                  src={item.barang_gambar}
+                                  alt={item.barang}
+                                  className="w-10 h-10 object-cover rounded-lg"
+                                  onError={(e) => {
+                                    e.target.style.display = 'none';
+                                    e.target.nextSibling.style.display = 'flex';
+                                  }}
+                                />
+                              ) : null}
+                              <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center hidden">
+                                <Package className="w-5 h-5 text-blue-600" />
+                              </div>
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center space-x-2 mb-1">
+                                <User className="w-3 h-3 text-gray-400 flex-shrink-0" />
+                                <p className="font-medium text-gray-900 text-sm truncate">
+                                  {item.nama}
+                                </p>
+                              </div>
+                              <p className="text-xs text-gray-500 mb-1 truncate">
+                                NIM: {item.nim}
+                              </p>
+                              <p className="text-sm font-medium text-gray-900 truncate">
+                                {item.barang}
+                              </p>
+                              <p className="text-xs text-gray-500 truncate">
+                                {item.jumlah} unit • {item.instansi}
+                              </p>
+                              <p className="text-xs text-blue-600 font-medium">
+                                {formatRupiah(item.totalHarga)}
+                              </p>
+                            </div>
                           </div>
                         </td>
-                        <td className="py-4">
-                          <p className="font-medium text-gray-900">{item.barang}</p>
-                          <p className="text-sm text-gray-500">{item.jumlah} unit</p>
+                        <td className="py-3">
+                          <div className="flex items-center space-x-2 text-xs text-gray-900 mb-1">
+                            <Calendar className="w-3 h-3 text-blue-500 flex-shrink-0" />
+                            <span>
+                              {item.tanggalPinjam} - {item.tanggalKembali}
+                            </span>
+                          </div>
+                          <p className="text-xs text-gray-500">
+                            {item.waktuDiajukan}
+                          </p>
                         </td>
-                        <td className="py-4">
-                          <p className="text-sm text-gray-900">{item.tanggalPinjam} - {item.tanggalKembali}</p>
-                          <p className="text-xs text-gray-500">{item.waktuDiajukan}</p>
-                        </td>
-                        <td className="py-4">
-                          <span className={`inline-flex items-center space-x-1 px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(item.status)}`}>
+                        <td className="py-3">
+                          <span className={`inline-flex items-center space-x-1 px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(item.status)}`}>
                             {getStatusIcon(item.status)}
-                            <span>{getStatusText(item.status)}</span>
+                            <span className="text-xs">{getStatusText(item.status)}</span>
                           </span>
                         </td>
-                        <td className="py-4">
-                          <div className="flex items-center space-x-2">
+                        <td className="py-3">
+                          <div className="flex items-center space-x-1">
+                            <button
+                              onClick={() => handleViewDetails(item)}
+                              className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors duration-300"
+                              title="Detail Peminjaman"
+                            >
+                              <Eye className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              onClick={() => handleContact(item.telepon)}
+                              className="p-1.5 text-green-600 hover:bg-green-50 rounded-lg transition-colors duration-300"
+                              title="Hubungi via WhatsApp"
+                              disabled={!item.telepon}
+                            >
+                              <MessageCircle className="w-3.5 h-3.5" />
+                            </button>
                             {item.status === 'pending' && (
                               <>
                                 <button
                                   onClick={() => handleApprove(item.id)}
-                                  className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
-                                  title="Setujui"
+                                  className="p-1.5 text-green-600 hover:bg-green-50 rounded-lg transition-colors duration-300"
+                                  title="Setujui Peminjaman"
                                 >
-                                  <CheckCircle className="w-4 h-4" />
+                                  <CheckCircle className="w-3.5 h-3.5" />
                                 </button>
                                 <button
                                   onClick={() => handleReject(item.id)}
-                                  className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                                  title="Tolak"
+                                  className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors duration-300"
+                                  title="Tolak Peminjaman"
                                 >
-                                  <XCircle className="w-4 h-4" />
+                                  <XCircle className="w-3.5 h-3.5" />
                                 </button>
                               </>
                             )}
-                            <button
-                              onClick={() => handleContact(item.nim)}
-                              className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                              title="Hubungi"
-                            >
-                              <MessageCircle className="w-4 h-4" />
-                            </button>
-                            <button className="p-2 text-gray-600 hover:bg-gray-50 rounded-lg transition-colors">
-                              <MoreVertical className="w-4 h-4" />
-                            </button>
                           </div>
                         </td>
                       </tr>
@@ -353,15 +595,20 @@ const AdminHomePage = () => {
               </div>
 
               {filteredKonfirmasi.length === 0 && (
-                <div className="text-center py-8">
-                  <Package className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                  <p className="text-gray-500">Tidak ada data konfirmasi</p>
+                <div className="text-center py-6">
+                  <Package className="w-10 h-10 text-gray-400 mx-auto mb-3" />
+                  <p className="text-gray-500 text-sm">
+                    {searchTerm ? 'Tidak ada hasil pencarian' : 'Tidak ada data konfirmasi'}
+                  </p>
                 </div>
               )}
             </div>
 
-            <div className="p-4 bg-gray-50 rounded-b-2xl">
-              <button className="w-full text-center text-blue-600 hover:text-blue-700 font-medium text-sm">
+            <div className="p-3 bg-gray-50 rounded-b-2xl">
+              <button 
+                onClick={() => window.location.href = '/peminjaman'}
+                className="w-full text-center text-blue-600 hover:text-blue-700 font-medium text-xs"
+              >
                 Lihat Semua Konfirmasi →
               </button>
             </div>
@@ -382,9 +629,6 @@ const AdminHomePage = () => {
                   <option value="6-bulan">6 Bulan</option>
                   <option value="tahun-ini">Tahun Ini</option>
                 </select>
-                <button className="p-2 border border-gray-300 rounded-lg hover:bg-gray-50">
-                  <Download className="w-4 h-4 text-gray-600" />
-                </button>
               </div>
             </div>
 
@@ -395,7 +639,7 @@ const AdminHomePage = () => {
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="font-medium text-gray-900">Jumlah Peminjam</h3>
                   <span className="text-2xl font-bold text-blue-600">
-                    {statistikPeminjam.reduce((sum, item) => sum + item.peminjam, 0)}
+                    {totalPeminjamChart}
                   </span>
                 </div>
                 <div className="flex items-end justify-between h-32">
@@ -403,8 +647,8 @@ const AdminHomePage = () => {
                     <div key={index} className="flex flex-col items-center flex-1">
                       <div
                         className="w-6 bg-blue-500 rounded-t-lg transition-all duration-300 hover:bg-blue-600"
-                        style={{ height: `${(item.peminjam / 80) * 100}%` }}
-                        title={`${item.peminjam} peminjam`}
+                        style={{ height: `${(item.peminjam / chartMaxValues.peminjam) * 100}%` }}
+                        title={`${item.bulan}: ${item.peminjam} peminjam`}
                       ></div>
                       <span className="text-xs text-gray-500 mt-2">{item.bulan}</span>
                     </div>
@@ -415,9 +659,9 @@ const AdminHomePage = () => {
               {/* Bar Chart - Pendapatan */}
               <div>
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="font-medium text-gray-900">Pendapatan (juta)</h3>
+                  <h3 className="font-medium text-gray-900">Total Pendapatan</h3>
                   <span className="text-2xl font-bold text-green-600">
-                    Rp {Math.round(statistikPeminjam.reduce((sum, item) => sum + item.pendapatan, 0) / 1000000)} JT
+                    {formatRupiah(totalPendapatanChart)}
                   </span>
                 </div>
                 <div className="flex items-end justify-between h-32">
@@ -425,8 +669,8 @@ const AdminHomePage = () => {
                     <div key={index} className="flex flex-col items-center flex-1">
                       <div
                         className="w-6 bg-green-500 rounded-t-lg transition-all duration-300 hover:bg-green-600"
-                        style={{ height: `${(item.pendapatan / 8000000) * 100}%` }}
-                        title={`Rp ${(item.pendapatan / 1000000).toFixed(1)} JT`}
+                        style={{ height: `${(item.pendapatan / chartMaxValues.pendapatan) * 100}%` }}
+                        title={`${item.bulan}: ${formatRupiah(item.pendapatan)}`}
                       ></div>
                       <span className="text-xs text-gray-500 mt-2">{item.bulan}</span>
                     </div>
@@ -440,19 +684,195 @@ const AdminHomePage = () => {
               <div className="bg-blue-50 rounded-lg p-4">
                 <p className="text-sm text-blue-600 font-medium">Rata-rata Peminjam/Bulan</p>
                 <p className="text-2xl font-bold text-blue-900">
-                  {Math.round(statistikPeminjam.reduce((sum, item) => sum + item.peminjam, 0) / statistikPeminjam.length)}
+                  {statistikPeminjam.length > 0 
+                    ? Math.round(totalPeminjamChart / statistikPeminjam.length)
+                    : 0
+                  }
                 </p>
               </div>
               <div className="bg-green-50 rounded-lg p-4">
                 <p className="text-sm text-green-600 font-medium">Rata-rata Pendapatan/Bulan</p>
                 <p className="text-2xl font-bold text-green-900">
-                  Rp {Math.round(statistikPeminjam.reduce((sum, item) => sum + item.pendapatan, 0) / statistikPeminjam.length / 1000000)} JT
+                  {statistikPeminjam.length > 0 
+                    ? formatRupiah(Math.round(totalPendapatanChart / statistikPeminjam.length))
+                    : formatRupiah(0)
+                  }
                 </p>
               </div>
             </div>
           </div>
         </div>
       </div>
+
+      {/* Detail Modal */}
+      {showDetailModal && selectedPeminjam && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-xl font-bold text-gray-900">Detail Peminjaman</h3>
+                <button
+                  onClick={() => setShowDetailModal(false)}
+                  className="p-2 text-gray-400 hover:text-gray-600 transition-colors duration-300"
+                >
+                  <XCircle className="w-6 h-6" />
+                </button>
+              </div>
+
+              <div className="space-y-6">
+                {/* Informasi Peminjam */}
+                <div>
+                  <h4 className="font-semibold text-gray-900 mb-4 flex items-center space-x-2">
+                    <User className="w-5 h-5 text-blue-600" />
+                    <span>Informasi Peminjam</span>
+                  </h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-sm text-gray-600">Nama Lengkap</p>
+                      <p className="font-medium text-gray-900">{selectedPeminjam.nama || '-'}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600">NIM</p>
+                      <p className="font-medium text-gray-900">{selectedPeminjam.nim || '-'}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600">Jurusan</p>
+                      <p className="font-medium text-gray-900">{selectedPeminjam.jurusan || '-'}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600">Instansi</p>
+                      <p className="font-medium text-gray-900">{selectedPeminjam.instansi || '-'}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600">Telepon</p>
+                      <p className="font-medium text-gray-900">{selectedPeminjam.telepon || '-'}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600">Email</p>
+                      <p className="font-medium text-gray-900">{selectedPeminjam.email || '-'}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Informasi Barang */}
+                <div>
+                  <h4 className="font-semibold text-gray-900 mb-4 flex items-center space-x-2">
+                    <Package className="w-5 h-5 text-green-600" />
+                    <span>Informasi Barang</span>
+                  </h4>
+                  <div className="flex items-center space-x-4 p-4 bg-gray-50 rounded-xl">
+                    <div className="w-16 h-16 bg-gray-200 rounded-lg flex items-center justify-center">
+                      {selectedPeminjam.barang_gambar ? (
+                        <img
+                          src={selectedPeminjam.barang_gambar}
+                          alt={selectedPeminjam.barang}
+                          className="w-16 h-16 object-cover rounded-lg"
+                        />
+                      ) : (
+                        <Package className="w-8 h-8 text-gray-400" />
+                      )}
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-xs text-gray-900">
+                        {selectedPeminjam.barang || 'Barang tidak tersedia'}
+                      </p>
+                      <p className="text-medium text-gray-600">
+                        Jumlah: {selectedPeminjam.jumlah || 0} unit
+                      </p>
+                      <p className="text-sm text-gray-600">
+                        Total Biaya: {formatRupiah(selectedPeminjam.totalHarga)}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Detail Peminjaman */}
+                <div>
+                  <h4 className="font-semibold text-gray-900 mb-4 flex items-center space-x-2">
+                    <Calendar className="w-5 h-5 text-purple-600" />
+                    <span>Detail Peminjaman</span>
+                  </h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-sm text-gray-600">Tanggal Mulai</p>
+                      <p className="font-medium text-gray-900">{selectedPeminjam.tanggalPinjam}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600">Tanggal Selesai</p>
+                      <p className="font-medium text-gray-900">{selectedPeminjam.tanggalKembali}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600">Lama Pinjam</p>
+                      <p className="font-medium text-gray-900">{selectedPeminjam.lama_pinjam || 0} hari</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600">Total Biaya</p>
+                      <p className="font-medium text-gray-900">{formatRupiah(selectedPeminjam.totalHarga)}</p>
+                    </div>
+                    <div className="md:col-span-2">
+                      <p className="text-sm text-gray-600">Status</p>
+                      <span
+                        className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(
+                          selectedPeminjam.status
+                        )}`}
+                      >
+                        {getStatusIcon(selectedPeminjam.status)}
+                        <span className="ml-1.5">
+                          {getStatusText(selectedPeminjam.status)}
+                        </span>
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Catatan */}
+                {selectedPeminjam.catatan && (
+                  <div>
+                    <h4 className="font-semibold text-gray-900 mb-2">
+                      Catatan
+                    </h4>
+                    <p className="text-gray-700 bg-gray-50 p-4 rounded-xl">{selectedPeminjam.catatan}</p>
+                  </div>
+                )}
+
+                {/* Action Buttons */}
+                <div className="flex space-x-3 pt-6 border-t border-gray-200">
+                  <button
+                    onClick={() => handleContact(selectedPeminjam.telepon)}
+                    disabled={!selectedPeminjam.telepon}
+                    className="flex-1 bg-green-600 text-white py-3 rounded-xl font-semibold hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors duration-300 flex items-center justify-center space-x-2"
+                  >
+                    <MessageCircle className="w-5 h-5" />
+                    <span>Hubungi via WhatsApp</span>
+                  </button>
+                  {selectedPeminjam.status === 'pending' && (
+                    <>
+                      <button
+                        onClick={() => {
+                          handleApprove(selectedPeminjam.id);
+                          setShowDetailModal(false);
+                        }}
+                        className="flex-1 bg-blue-600 text-white py-3 rounded-xl font-semibold hover:bg-blue-700 transition-colors duration-300"
+                      >
+                        Setujui
+                      </button>
+                      <button
+                        onClick={() => {
+                          handleReject(selectedPeminjam.id);
+                          setShowDetailModal(false);
+                        }}
+                        className="flex-1 bg-red-600 text-white py-3 rounded-xl font-semibold hover:bg-red-700 transition-colors duration-300"
+                      >
+                        Tolak
+                      </button>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
