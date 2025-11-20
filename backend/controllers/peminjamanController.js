@@ -169,6 +169,20 @@ export const PeminjamanController = {
 
       if (result.success) {
         console.log(`✅ Controller: Status updated successfully for ${id}`);
+        
+        // Jika status rejected, hapus dari database setelah beberapa waktu
+        if (status === 'rejected') {
+          setTimeout(async () => {
+            try {
+              console.log(`🔄 Auto-deleting rejected peminjaman: ${id}`);
+              await PeminjamanModel.delete(id);
+              console.log(`✅ Auto-deleted rejected peminjaman: ${id}`);
+            } catch (deleteError) {
+              console.error(`❌ Failed to auto-delete rejected peminjaman ${id}:`, deleteError);
+            }
+          }, 5000); // Hapus setelah 5 detik
+        }
+
         res.json({
           success: true,
           message: `Status berhasil diubah menjadi ${status}`,
@@ -194,22 +208,26 @@ export const PeminjamanController = {
   async deletePeminjaman(req, res) {
     try {
       const { id } = req.params;
+      
+      console.log(`🗑️ Controller: Deleting peminjaman ${id}`);
 
       const result = await PeminjamanModel.delete(id);
 
       if (result.success) {
+        console.log(`✅ Controller: Peminjaman ${id} deleted successfully`);
         res.json({
           success: true,
           message: 'Peminjaman berhasil dihapus'
         });
       } else {
+        console.error(`❌ Controller: Failed to delete peminjaman ${id}:`, result.error);
         res.status(400).json({
           success: false,
-          message: result.error
+          message: result.error || 'Gagal menghapus peminjaman'
         });
       }
     } catch (error) {
-      console.error('Error in deletePeminjaman:', error);
+      console.error('❌ Controller: Error in deletePeminjaman:', error);
       res.status(500).json({
         success: false,
         message: 'Terjadi kesalahan server'

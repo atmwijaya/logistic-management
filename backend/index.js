@@ -3,6 +3,7 @@ import dotenv from "dotenv";
 import cors from "cors";
 import katalogRoutes from "./routes/katalogRoute.js";
 import peminjamanRoutes from "./routes/peminjamanRoute.js";
+import riwayatRoutes from "./routes/riwayatRoute.js";
 
 dotenv.config();
 
@@ -13,6 +14,7 @@ app.use(cors());
 //routes
 app.use("/api/katalog", katalogRoutes);
 app.use("/api/peminjaman", peminjamanRoutes);
+app.use("/api/riwayat", riwayatRoutes);
 
 const port = process.env.PORT || 3000;
 app.listen(port, () => {

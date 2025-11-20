@@ -102,16 +102,26 @@ export const PeminjamanModel = {
   // Delete peminjaman
   async delete(id) {
     try {
+      console.log('🗑️ Deleting peminjaman with ID:', id);
+      
       const { error } = await supabase
         .from('peminjaman')
         .delete()
         .eq('id', id);
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Supabase delete error:', error);
+        throw error;
+      }
+
+      console.log('✅ Peminjaman deleted successfully');
       return { success: true };
     } catch (error) {
       console.error('Error deleting peminjaman:', error);
-      return { success: false, error: error.message };
+      return { 
+        success: false, 
+        error: error.message 
+      };
     }
   },
 
