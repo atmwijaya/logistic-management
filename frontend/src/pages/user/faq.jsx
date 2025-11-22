@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ChevronDown, ChevronUp, HelpCircle, Loader2 } from 'lucide-react';
 import faqAPI from '../../api/faqAPI';
+import phoneAPI from '../../api/phoneNumberAPI';
 
 const FAQItem = ({ question, answer, isOpen, onToggle }) => {
   return (
@@ -108,12 +109,23 @@ const FAQ = () => {
   });
 
   // Fungsi untuk handle klik tombol Hubungi Kami
-  const handleContactClick = () => {
-    // Ganti dengan nomor WhatsApp yang sesuai (format: kode negara + nomor tanpa tanda + atau 0)
-    const phoneNumber = '6281215452982'; 
-    const message = 'Halo, saya memiliki pertanyaan tentang Database Anggota Racana Diponegoro';
-    const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;
-    window.open(whatsappUrl, '_blank');
+  const handleContactClick = async () => {
+  try {
+    const response = await phoneAPI.getPhone();
+    const phoneNumber = response.data || ""; 
+
+    const preFilledMessage =
+      "Halo, saya ingin bertanya tentang layanan logistik Racana Diponegoro.";
+
+    const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(
+      preFilledMessage
+    )}`;
+
+    window.open(whatsappUrl, "_blank");
+  } catch (error) {
+    alert("Gagal mengambil nomor WhatsApp. Coba lagi nanti.");
+    console.error("WA Error:", error);
+  }
   };
 
   // Load data saat component mount

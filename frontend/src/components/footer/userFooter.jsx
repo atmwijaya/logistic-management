@@ -13,6 +13,7 @@ import {
   MessageCircle,
 } from "lucide-react";
 import { useState } from "react";
+import phoneAPI from "../../api/phoneNumberAPI";
 
 const Footer = () => {
   const currentYear = new Date().getFullYear();
@@ -78,15 +79,24 @@ const Footer = () => {
     },
   ];
 
-  const handleWhatsAppClick = () => {
-    const phoneNumber = "6281215452982";
+  const handleWhatsAppClick = async () => {
+  try {
+    const response = await phoneAPI.getPhone();
+    const phoneNumber = response.data || "6281234567890"; 
+
     const preFilledMessage =
       "Halo, saya ingin bertanya tentang layanan logistik Racana Diponegoro.";
+
     const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(
       preFilledMessage
     )}`;
+
     window.open(whatsappUrl, "_blank");
-  };
+  } catch (error) {
+    alert("Gagal mengambil nomor WhatsApp. Coba lagi nanti.");
+    console.error("WA Error:", error);
+  }
+};
 
   const [showChatInfo, setShowChatInfo] = useState(true);
 

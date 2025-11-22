@@ -1,16 +1,50 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import phoneAPI from "../../api/phoneNumberAPI";
 
 const Settings = () => {
-  const [phoneNumber, setPhoneNumber] = useState("+62 812-3456-7890");
+  const [phoneNumber, setPhoneNumber] = useState("");
   const [isEditingPhone, setIsEditingPhone] = useState(false);
   const [tempPhoneNumber, setTempPhoneNumber] = useState(phoneNumber);
   const navigate = useNavigate();
 
-  const handleSavePhoneNumber = () => {
-    setPhoneNumber(tempPhoneNumber);
-    setIsEditingPhone(false);
-    // Di sini Anda bisa menambahkan logika untuk menyimpan ke backend
+  useEffect(() => {
+    const loadPhone = async () => {
+      try {
+        const result = await phoneAPI.getPhone();
+        const full = result.data;
+
+        setPhoneNumber(full);
+        const clean = full.startsWith("62") ? full.slice(2) : full;
+        setTempPhoneNumber(clean);
+      } catch (err) {
+        console.error("Error load phone:", err);
+      }
+    };
+
+    loadPhone();
+  }, []);
+
+  const handleSavePhoneNumber = async () => {
+    const cleaned = tempPhoneNumber.trim();
+
+    const check = phoneAPI.utils.validatePhone(cleaned);
+    if (!check.isValid) {
+      alert(check.message);
+      return;
+    }
+
+    const fullNumber = "62" + cleaned;
+
+    try {
+      await phoneAPI.updatePhone(fullNumber);
+
+      setPhoneNumber(fullNumber);
+      setIsEditingPhone(false);
+    } catch (err) {
+      alert("Gagal mengupdate nomor telepon");
+      console.error(err);
+    }
   };
 
   const handleFAQEdit = () => {
@@ -85,32 +119,34 @@ const Settings = () => {
           <div className="mt-4">
             {isEditingPhone ? (
               <div className="space-y-4">
-                <div>
-                  <label
-                    htmlFor="phoneNumber"
-                    className="block text-sm font-medium text-gray-700 mb-2"
-                  >
-                    Nomor Telepon
-                  </label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Nomor Telepon
+                </label>
+
+                <div className="flex items-center border rounded-md overflow-hidden">
+                  <span className="px-3 py-2 bg-gray-100 border-r">+62</span>
+
                   <input
                     type="text"
-                    id="phoneNumber"
                     value={tempPhoneNumber}
-                    onChange={(e) => setTempPhoneNumber(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="Masukkan nomor telepon"
+                    onChange={(e) =>
+                      setTempPhoneNumber(e.target.value.replace(/\D/g, ""))
+                    }
+                    className="w-full px-3 py-2 focus:outline-none"
+                    placeholder="8123456789"
                   />
                 </div>
+
                 <div className="flex space-x-3">
                   <button
                     onClick={handleSavePhoneNumber}
-                    className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors duration-200"
+                    className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
                   >
                     Simpan
                   </button>
                   <button
                     onClick={handleCancelEdit}
-                    className="px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 transition-colors duration-200"
+                    className="px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600"
                   >
                     Batal
                   </button>
@@ -120,13 +156,13 @@ const Settings = () => {
               <div className="flex justify-between items-center">
                 <div>
                   <p className="text-lg font-medium text-gray-900">
-                    {phoneNumber}
+                    +{phoneNumber}
                   </p>
-                  <p className="text-sm text-gray-500">Nomor telepon aktif</p>
+                  <p className="text-sm text-gray-500">Gunakan format +62</p>
                 </div>
                 <button
                   onClick={() => setIsEditingPhone(true)}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors duration-200"
+                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
                 >
                   Edit
                 </button>
