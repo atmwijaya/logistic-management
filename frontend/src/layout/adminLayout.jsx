@@ -9,6 +9,8 @@ import DetailAdminPage from "../pages/admin/DetailAdminPage";
 import EditKatalogPage from "../pages/admin/EditKatalogPage";
 import DaftarPeminjam from "../pages/admin/DaftarPeminjam";
 import RiwayatPage from "../pages/admin/RiwayatPage";
+import Settings from "../pages/admin/Settings";
+import FaqAdminPage from "../components/settings/faqAdminPage";
 
 // Komponen untuk halaman 404
 const NotFound = () => {
@@ -67,6 +69,8 @@ const AdminLayout = () => {
           <Route path="/admin/editkatalog/:id" element={<EditKatalogPage />} />
           <Route path="/admin/daftarpeminjam" element={<DaftarPeminjam />} />
           <Route path="/admin/riwayat" element={<RiwayatPage />} />
+          <Route path="/admin/settings" element={<Settings />} />
+          <Route path="/admin/faqadminpage" element={<FaqAdminPage />} />
 
           {/* Fallback route untuk 404 */}
           <Route path="*" element={<NotFound />} />

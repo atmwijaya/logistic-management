@@ -6,6 +6,7 @@ import HomePage from '../pages/user/HomePage';
 import KatalogPage from '../pages/user/KatalogPage';
 import DetailPage from '../pages/user/DetailPage';
 import ConfirmationPage from '../pages/user/ConfirmationPage'
+import FAQ from '../pages/user/faq';
 
 // Komponen untuk halaman 404
 const NotFound = () => {
@@ -46,6 +47,7 @@ const UserLayout = () => {
           <Route path="/katalog" element={<KatalogPage />} />
           <Route path="/katalog/:id" element={<DetailPage />} />
           <Route path="/pinjam/:id" element={<ConfirmationPage />} />
+          <Route path="/faq" element={<FAQ />} />
           
           {/* Fallback route untuk 404 */}
           <Route path="*" element={<NotFound />} />
