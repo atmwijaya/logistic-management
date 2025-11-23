@@ -4,7 +4,8 @@ const supabase = createClient (
     import.meta.env.VITE_SUPABASE_URL, import.meta.env.VITE_SUPABASE_ANON_KEY
 )
 
-const BASE_URL = "http://localhost:3000/api/katalog";
+const BASE_URL = "https://logistic-backend-nu.vercel.app/api/katalog";
+//const BASE_URL = "http://localhost:3000/api/katalog";
 
 // Helper function untuk handle fetch
 const fetchAPI = async (url, options = {}) => {

@@ -5,7 +5,8 @@ const supabase = createClient(
   import.meta.env.VITE_SUPABASE_ANON_KEY
 );
 
-const BASE_URL = "http://localhost:3000/api/riwayat";
+const BASE_URL = "https://logistic-backend-nu.vercel.app/api/riwayat";
+//const BASE_URL = "http://localhost:3000/api/riwayat";
 
 // Enhanced fetchAPI dengan better error handling
 const fetchAPI = async (url, options = {}) => {

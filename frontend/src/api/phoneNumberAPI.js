@@ -6,7 +6,8 @@ const supabase = createClient(
   import.meta.env.VITE_SUPABASE_ANON_KEY
 );
 
-const BASE_URL = "http://localhost:3000/api/phone";
+const BASE_URL = "https://logistic-backend-nu.vercel.app/api/phone";
+//const BASE_URL = "http://localhost:3000/api/phone";
 
 const fetchAPI = async (url, options = {}) => {
   try {

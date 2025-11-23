@@ -19,7 +19,7 @@ import riwayatAPI from "../../api/riwayatAPI";
 import { data } from "react-router-dom";
 
 const AdminHomePage = () => {
-  const [selectedPeriod, setSelectedPeriod] = useState("tahun-ini");
+  const [selectedPeriod, setSelectedPeriod] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(true);
   const [konfirmasiTerbaru, setKonfirmasiTerbaru] = useState([]);
