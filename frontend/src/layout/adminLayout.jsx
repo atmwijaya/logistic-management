@@ -16,7 +16,6 @@ import ProtectedRoute from "../components/protectedRoute";
 
 const supabase = createClient(import.meta.env.VITE_SUPABASE_URL, import.meta.env.VITE_SUPABASE_ANON_KEY)
 
-// Komponen untuk halaman 404
 const NotFound = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center px-4">
@@ -51,7 +50,6 @@ const AdminLayout = () => {
     }
   }, []);
 
-  // Jika user sudah login dan mencoba akses /login, redirect ke /admin
   const PublicRoute = ({ children }) => {
     const [checking, setChecking] = useState(true);
     const [isLoggedIn, setIsLoggedIn] = useState(false);
