@@ -1,6 +1,9 @@
 import React, { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
+import { createClient } from "@supabase/supabase-js";
 import logo from "../../assets/Dewasaku_Putih.png";
+
+const supabase = createClient(import.meta.env.VITE_SUPABASE_URL, import.meta.env.VITE_SUPABASE_ANON_KEY)
 
 const NavbarAdmin = () => {
   const navigate = useNavigate();
@@ -15,14 +18,26 @@ const NavbarAdmin = () => {
     { path: "/admin/settings", name: "Settings" },
   ];
 
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("admin");
-    localStorage.removeItem("tokenExpiration");
-    console.log("Admin logged out");
-    navigate("/login"); 
-    logout();
-    setShowLogoutModal(false);
+  const handleLogout = async () => {
+    try {
+      // Sign out from Supabase
+      const { error } = await supabase.auth.signOut()
+      
+      if (error) {
+        console.error('Error logging out:', error)
+      }
+      
+      // Clear localStorage
+      localStorage.removeItem('admin_session')
+      localStorage.removeItem('admin_user')
+      
+      console.log("Admin logged out");
+      navigate('/login')
+    } catch (error) {
+      console.error('Logout error:', error)
+    } finally {
+      setShowLogoutModal(false)
+    }
   };
 
   return (
