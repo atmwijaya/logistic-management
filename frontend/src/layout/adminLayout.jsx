@@ -26,7 +26,7 @@ const NotFound = () => {
           beranda.
         </p>
         <a
-          href="/"
+          href="/admin"
           className="bg-blue-600 text-white px-6 py-3 rounded-2xl font-semibold hover:bg-blue-700 transition-all duration-300 inline-block"
         >
           Kembali ke Beranda

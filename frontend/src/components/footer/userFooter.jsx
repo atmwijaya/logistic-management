@@ -82,7 +82,7 @@ const Footer = () => {
   const handleWhatsAppClick = async () => {
   try {
     const response = await phoneAPI.getPhone();
-    const phoneNumber = response.data || "6281234567890"; 
+    const phoneNumber = response.data || ""; 
 
     const preFilledMessage =
       "Halo, saya ingin bertanya tentang layanan logistik Racana Diponegoro.";

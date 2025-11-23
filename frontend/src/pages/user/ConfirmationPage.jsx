@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import katalogAPI from "../../api/katalogAPI";
 import peminjamanAPI from "../../api/peminjamanAPI";
+import phoneAPI from "../../api/phoneNumberAPI";
 
 const ConfirmationPage = () => {
   const { id } = useParams();
@@ -45,7 +46,6 @@ const ConfirmationPage = () => {
   const [phoneError, setPhoneError] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
-  // Load data barang dari backend
   useEffect(() => {
     const loadBarangDetail = async () => {
       try {
@@ -54,8 +54,6 @@ const ConfirmationPage = () => {
 
         const response = await katalogAPI.getById(id);
         console.log("📦 Barang detail response:", response);
-
-        // Handle berbagai kemungkinan struktur response
         const barang = response.data || response;
 
         if (!barang) {
@@ -238,7 +236,6 @@ const ConfirmationPage = () => {
     const totalHari = calculateTotalHari();
     const totalHarga = calculateTotalHarga();
 
-    // Validasi stok
     const stok = Number(selectedBarang.stok) || 0;
     const jumlahPinjam = Number(formData.jumlahPinjam) || 1;
 
@@ -251,7 +248,6 @@ const ConfirmationPage = () => {
     setError("");
 
     try {
-      // Format data untuk dikirim ke backend
       const peminjamanData = {
         nama_lengkap: formData.namaLengkap.trim(),
         nim: formData.nim.trim(),
@@ -264,7 +260,7 @@ const ConfirmationPage = () => {
         lama_pinjam: totalHari,
         total_biaya: totalHarga,
         catatan: formData.catatan.trim() || "",
-        telepon: getFullPhoneNumber(), // Gunakan nomor lengkap
+        telepon: getFullPhoneNumber(),
         email: "",
       };
 
@@ -302,7 +298,12 @@ const ConfirmationPage = () => {
           `Apakah barang tersedia untuk periode tersebut?%0A` +
           `Terima kasih!`;
 
-        const phoneNumber = "6281215452982";
+        const response = await phoneAPI.getPhone();
+        const phoneNumber = response.data || "";
+
+        setSubmissionTime(new Date().toLocaleString("id-ID"));
+        setIsSubmitted(true);
+
         const whatsappUrl = `https://wa.me/${phoneNumber}?text=${message}`;
 
         setSubmissionTime(new Date().toLocaleString("id-ID"));
