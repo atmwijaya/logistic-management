@@ -1,8 +1,35 @@
 import React, { useState, useEffect } from 'react';
 import { Package, Play, ArrowRight, ClipboardList, ChevronLeft, ChevronRight } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import phoneAPI from '../../api/phoneNumberAPI';
 
 const HeroSection = () => {
   const [currentSlide, setCurrentSlide] = useState(0);
+  const navigate = useNavigate();
+
+  const handlePinjam = () => {
+    navigate('/katalog');
+  };
+
+  const handleWhatsAppClick = async () => {
+    try {
+      // Ganti dengan API call yang sesuai untuk mendapatkan nomor WhatsApp
+      const response = await phoneAPI.getPhone();
+      const phoneNumber = response.data || "";
+
+      const preFilledMessage =
+        "Halo, saya ingin bertanya tentang layanan logistik Racana Diponegoro.";
+
+      const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(
+        preFilledMessage
+      )}`;
+
+      window.open(whatsappUrl, "_blank");
+    } catch (error) {
+      alert("Gagal mengambil nomor WhatsApp. Coba lagi nanti.");
+      console.error("WA Error:", error);
+    }
+  };
 
   // Tambah aja sesuai kebutuhan
   const bottomImages = [
@@ -134,11 +161,11 @@ const HeroSection = () => {
 
         {/* Action Buttons */}
         <div className="flex flex-col space-y-3 max-w-xs mx-auto">
-          <button className="bg-linear-to-r from-blue-600 to-blue-500 text-white px-6 py-3 rounded-2xl font-semibold shadow-xl hover:shadow-2xl hover:scale-105 transition-all duration-300 flex items-center justify-center space-x-2 text-sm">
+          <button onClick={handlePinjam} className="bg-linear-to-r from-blue-600 to-blue-500 text-white px-6 py-3 rounded-2xl font-semibold shadow-xl hover:shadow-2xl hover:scale-105 transition-all duration-300 flex items-center justify-center space-x-2 text-sm">
             <Package className="w-4 h-4" />
             <span>Pinjam Barang</span>
           </button>
-          <button className="bg-white/25 backdrop-blur-xl border border-white/40 text-slate-700 px-6 py-3 rounded-2xl font-semibold shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300 flex items-center justify-center space-x-2 text-sm">
+          <button onClick={handleWhatsAppClick} className="bg-white/25 backdrop-blur-xl border border-white/40 text-slate-700 px-6 py-3 rounded-2xl font-semibold shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300 flex items-center justify-center space-x-2 text-sm">
             <ClipboardList className="w-4 h-4" />
             <span>Hubungi kami</span>
           </button>
@@ -169,12 +196,12 @@ const HeroSection = () => {
 
             {/* Action Buttons */}
             <div className="flex flex-col sm:flex-row gap-6 justify-center lg:justify-start">
-              <button className="bg-linear-to-r from-blue-600 to-blue-500 text-white px-10 py-5 rounded-2xl font-semibold shadow-xl hover:shadow-2xl hover:scale-105 transition-all duration-300 flex items-center justify-center space-x-3 text-lg">
+              <button onClick={handlePinjam} className="bg-linear-to-r from-blue-600 to-blue-500 text-white px-10 py-5 rounded-2xl font-semibold shadow-xl hover:shadow-2xl hover:scale-105 transition-all duration-300 flex items-center justify-center space-x-3 text-lg">
                 <Package className="w-6 h-6" />
                 <span>Pinjam Barang</span>
                 <ArrowRight className="w-5 h-5" />
               </button>
-              <button className="bg-white/25 backdrop-blur-xl border border-white/40 text-slate-700 px-10 py-5 rounded-2xl font-semibold shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300 flex items-center justify-center space-x-3 text-lg">
+              <button onClick={handleWhatsAppClick} className="bg-white/25 backdrop-blur-xl border border-white/40 text-slate-700 px-10 py-5 rounded-2xl font-semibold shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300 flex items-center justify-center space-x-3 text-lg">
                 <ClipboardList className="w-6 h-6" />
                 <span>Hubungi kami</span>
               </button>

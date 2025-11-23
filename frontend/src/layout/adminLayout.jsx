@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
 import { Routes, Route, useNavigate, Navigate } from "react-router-dom";
-import { createClient } from '@supabase/supabase-js'
+import { createClient } from "@supabase/supabase-js";
 import LoginPage from "../pages/admin/LoginPage";
 import Dashboard from "../pages/admin/Dashboard";
 import NavbarAdmin from "../components/navbar/adminNavbar";
+import AdminMobileNavbar from "../components/navbar/adminMobileNavbar";
 import KatalogAdminPage from "../pages/admin/KatalogAdminPage";
 import CreateKatalogPage from "../pages/admin/CreateKatalogPage";
 import DetailAdminPage from "../pages/admin/DetailAdminPage";
@@ -14,7 +15,10 @@ import Settings from "../pages/admin/Settings";
 import FaqAdminPage from "../components/settings/faqAdminPage";
 import ProtectedRoute from "../components/protectedRoute";
 
-const supabase = createClient(import.meta.env.VITE_SUPABASE_URL, import.meta.env.VITE_SUPABASE_ANON_KEY)
+const supabase = createClient(
+  import.meta.env.VITE_SUPABASE_URL,
+  import.meta.env.VITE_SUPABASE_ANON_KEY
+);
 
 const NotFound = () => {
   return (
@@ -44,7 +48,7 @@ const AdminLayout = () => {
   const [user, setUser] = useState(null);
 
   useEffect(() => {
-    const userData = localStorage.getItem('admin_user');
+    const userData = localStorage.getItem("admin_user");
     if (userData) {
       setUser(JSON.parse(userData));
     }
@@ -56,11 +60,13 @@ const AdminLayout = () => {
 
     useEffect(() => {
       const checkAuth = async () => {
-        const { data: { session } } = await supabase.auth.getSession();
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
         setIsLoggedIn(!!session);
         setChecking(false);
       };
-      
+
       checkAuth();
     }, []);
 
@@ -79,127 +85,154 @@ const AdminLayout = () => {
     <div className="App">
       <Routes>
         {/* Public Route - hanya bisa diakses jika belum login */}
-        <Route 
-          path="/login" 
+        <Route
+          path="/login"
           element={
             <PublicRoute>
               <LoginPage />
             </PublicRoute>
-          } 
+          }
         />
-        
+
         {/* Protected Routes - hanya bisa diakses jika sudah login */}
-        <Route 
-          path="/admin" 
+        <Route
+          path="/admin"
           element={
             <ProtectedRoute>
               <div className="hidden md:block">
                 <NavbarAdmin />
+              </div>
+              <div className="block md:hidden">
+                <AdminMobileNavbar />
               </div>
               <Dashboard />
             </ProtectedRoute>
-          } 
+          }
         />
-        
-        <Route 
-          path="/admin/daftarkatalog" 
+
+        <Route
+          path="/admin/daftarkatalog"
           element={
             <ProtectedRoute>
               <div className="hidden md:block">
                 <NavbarAdmin />
+              </div>
+              <div className="block md:hidden">
+                <AdminMobileNavbar />
               </div>
               <KatalogAdminPage />
             </ProtectedRoute>
-          } 
+          }
         />
-        
-        <Route 
-          path="/admin/createkatalog" 
+
+        <Route
+          path="/admin/createkatalog"
           element={
             <ProtectedRoute>
               <div className="hidden md:block">
                 <NavbarAdmin />
+              </div>
+              <div className="block md:hidden">
+                <AdminMobileNavbar />
               </div>
               <CreateKatalogPage />
             </ProtectedRoute>
-          } 
+          }
         />
-        
-        <Route 
-          path="/admin/detailkatalog/:id" 
+
+        <Route
+          path="/admin/detailkatalog/:id"
           element={
             <ProtectedRoute>
               <div className="hidden md:block">
                 <NavbarAdmin />
+              </div>
+              <div className="block md:hidden">
+                <AdminMobileNavbar />
               </div>
               <DetailAdminPage />
             </ProtectedRoute>
-          } 
+          }
         />
-        
-        <Route 
-          path="/admin/editkatalog/:id" 
+
+        <Route
+          path="/admin/editkatalog/:id"
           element={
             <ProtectedRoute>
               <div className="hidden md:block">
                 <NavbarAdmin />
+              </div>
+              <div className="block md:hidden">
+                <AdminMobileNavbar />
               </div>
               <EditKatalogPage />
             </ProtectedRoute>
-          } 
+          }
         />
-        
-        <Route 
-          path="/admin/daftarpeminjam" 
+
+        <Route
+          path="/admin/daftarpeminjam"
           element={
             <ProtectedRoute>
               <div className="hidden md:block">
                 <NavbarAdmin />
+              </div>
+              <div className="block md:hidden">
+                <AdminMobileNavbar />
               </div>
               <DaftarPeminjam />
             </ProtectedRoute>
-          } 
+          }
         />
-        
-        <Route 
-          path="/admin/riwayat" 
+
+        <Route
+          path="/admin/riwayat"
           element={
             <ProtectedRoute>
               <div className="hidden md:block">
                 <NavbarAdmin />
+              </div>
+              <div className="block md:hidden">
+                <AdminMobileNavbar />
               </div>
               <RiwayatPage />
             </ProtectedRoute>
-          } 
+          }
         />
-        
-        <Route 
-          path="/admin/settings" 
+
+        <Route
+          path="/admin/settings"
           element={
             <ProtectedRoute>
               <div className="hidden md:block">
                 <NavbarAdmin />
+              </div>
+              <div className="block md:hidden">
+                <AdminMobileNavbar />
               </div>
               <Settings />
             </ProtectedRoute>
-          } 
+          }
         />
-        
-        <Route 
-          path="/admin/faqadminpage" 
+
+        <Route
+          path="/admin/faqadminpage"
           element={
             <ProtectedRoute>
               <div className="hidden md:block">
                 <NavbarAdmin />
               </div>
+              <div className="block md:hidden">
+                <AdminMobileNavbar />
+              </div>
               <FaqAdminPage />
             </ProtectedRoute>
-          } 
+          }
         />
 
         {/* Redirect root to login */}
         <Route path="/" element={<Navigate to="/login" replace />} />
-        
+
         {/* Fallback route untuk 404 */}
         <Route path="*" element={<NotFound />} />
       </Routes>

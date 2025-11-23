@@ -1,6 +1,7 @@
 import React from 'react';
 import { Routes, Route } from 'react-router-dom';
 import Navbar from '../components/navbar/userNavbar';
+import UserMobileNavbar from '../components/navbar/userMobileNavbar';
 import Footer from '../components/footer/userFooter';
 import HomePage from '../pages/user/HomePage';
 import KatalogPage from '../pages/user/KatalogPage';
@@ -37,7 +38,7 @@ const UserLayout = () => {
       <Navbar />
       </div>
       <div className="block md:hidden">
-        
+      <UserMobileNavbar />
       </div>
 
       {/* Main Content */}

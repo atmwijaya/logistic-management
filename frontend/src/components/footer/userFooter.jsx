@@ -80,23 +80,23 @@ const Footer = () => {
   ];
 
   const handleWhatsAppClick = async () => {
-  try {
-    const response = await phoneAPI.getPhone();
-    const phoneNumber = response.data || ""; 
+    try {
+      const response = await phoneAPI.getPhone();
+      const phoneNumber = response.data || "";
 
-    const preFilledMessage =
-      "Halo, saya ingin bertanya tentang layanan logistik Racana Diponegoro.";
+      const preFilledMessage =
+        "Halo, saya ingin bertanya tentang layanan logistik Racana Diponegoro.";
 
-    const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(
-      preFilledMessage
-    )}`;
+      const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(
+        preFilledMessage
+      )}`;
 
-    window.open(whatsappUrl, "_blank");
-  } catch (error) {
-    alert("Gagal mengambil nomor WhatsApp. Coba lagi nanti.");
-    console.error("WA Error:", error);
-  }
-};
+      window.open(whatsappUrl, "_blank");
+    } catch (error) {
+      alert("Gagal mengambil nomor WhatsApp. Coba lagi nanti.");
+      console.error("WA Error:", error);
+    }
+  };
 
   const [showChatInfo, setShowChatInfo] = useState(true);
 
