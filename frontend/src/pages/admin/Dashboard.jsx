@@ -107,6 +107,7 @@ const AdminHomePage = () => {
       } else {
         const riwayatResult = await riwayatAPI.getAll();
         if (riwayatResult.success) {
+          const riwayatData = riwayatResult.data || [];
           const totalPendapatan = riwayatData.reduce(
             (sum, item) => sum + (item.total_biaya || 0),
             0
@@ -585,6 +586,122 @@ const AdminHomePage = () => {
     0
   );
 
+  // Komponen untuk Mobile Card View
+  const MobileKonfirmasiCard = ({ item }) => (
+    <div className="bg-white rounded-2xl shadow-lg p-4 border border-gray-100 mb-4">
+      {/* Header dengan status dan waktu */}
+      <div className="flex justify-between items-start mb-3">
+        <div className="flex-1">
+          <div className="flex items-center space-x-2 mb-1">
+            <User className="w-4 h-4 text-blue-600" />
+            <h3 className="font-semibold text-gray-900 text-base truncate">
+              {item.nama}
+            </h3>
+          </div>
+          <p className="text-xs text-gray-600 mb-1">NIM: {item.nim}</p>
+        </div>
+        <div className="flex flex-col items-end space-y-1">
+          <span
+            className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(
+              item.status
+            )}`}
+          >
+            {getStatusText(item.status)}
+          </span>
+          <p className="text-xs text-gray-500">{item.waktuDiajukan}</p>
+        </div>
+      </div>
+
+      {/* Info Barang */}
+      <div className="flex items-start space-x-3 mb-3">
+        <div className="w-14 h-14 bg-gray-200 rounded-xl flex items-center justify-center flex-shrink-0">
+          {item.barang_gambar ? (
+            <img
+              src={item.barang_gambar}
+              alt={item.barang}
+              className="w-14 h-14 object-cover rounded-xl"
+            />
+          ) : (
+            <Package className="w-6 h-6 text-gray-400" />
+          )}
+        </div>
+        <div className="flex-1">
+          <p className="font-medium text-gray-900 text-sm mb-1 line-clamp-2">
+            {item.barang}
+          </p>
+          <div className="flex flex-wrap gap-2 text-xs text-gray-600">
+            <span>{item.jumlah} unit</span>
+            <span>•</span>
+            <span className="font-semibold text-blue-600">
+              {formatRupiah(item.totalHarga)}
+            </span>
+          </div>
+          <p className="text-xs text-gray-500 mt-1">{item.instansi}</p>
+        </div>
+      </div>
+
+      {/* Periode Peminjaman */}
+      <div className="bg-gray-50 rounded-xl p-3 mb-3">
+        <div className="grid grid-cols-2 gap-2 text-xs">
+          <div className="flex items-center space-x-2">
+            <Calendar className="w-3 h-3 text-blue-500 flex-shrink-0" />
+            <div>
+              <p className="text-gray-500 text-xs">Mulai</p>
+              <p className="font-medium text-gray-900">{item.tanggalPinjam}</p>
+            </div>
+          </div>
+          <div className="flex items-center space-x-2">
+            <Calendar className="w-3 h-3 text-green-500 flex-shrink-0" />
+            <div>
+              <p className="text-gray-500 text-xs">Selesai</p>
+              <p className="font-medium text-gray-900">{item.tanggalKembali}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Action Buttons */}
+      <div className="flex justify-between items-center pt-3 border-t border-gray-100">
+        <div className="flex space-x-2">
+          <button
+            onClick={() => handleViewDetails(item)}
+            className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors duration-200"
+            title="Detail Peminjaman"
+          >
+            <Eye className="w-4 h-4" />
+          </button>
+          <button
+            onClick={() => handleContact(item.telepon)}
+            disabled={!item.telepon}
+            className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors duration-200 disabled:opacity-50"
+            title="Hubungi via WhatsApp"
+          >
+            <MessageCircle className="w-4 h-4" />
+          </button>
+        </div>
+
+        {item.status === "pending" && (
+          <div className="flex space-x-2">
+            <button
+              onClick={() => handleApprove(item.id)}
+              className="bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-700 transition-colors duration-200 flex items-center space-x-1"
+            >
+              <CheckCircle className="w-4 h-4" />
+              <span>Setujui</span>
+            </button>
+            <button
+              onClick={() => handleReject(item.id)}
+              className="bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-red-700 transition-colors duration-200 flex items-center space-x-1"
+            >
+              <XCircle className="w-4 h-4" />
+              <span>Tolak</span>
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 p-6 flex items-center justify-center">
@@ -609,10 +726,9 @@ const AdminHomePage = () => {
           </p>
         </div>
 
-        {/* Statistik Overview */}
+        {/* Statistik Overview - Desktop */}
         <div className="hidden md:grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        {/* Desktop stats */}
-          <div className="bg-white rounded-2xl shadow-lg p-4">
+          <div className="bg-white rounded-2xl shadow-lg p-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">
@@ -638,7 +754,7 @@ const AdminHomePage = () => {
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl shadow-lg p-4">
+          <div className="bg-white rounded-2xl shadow-lg p-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">
@@ -657,7 +773,7 @@ const AdminHomePage = () => {
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl shadow-lg p-4">
+          <div className="bg-white rounded-2xl shadow-lg p-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">
@@ -676,7 +792,7 @@ const AdminHomePage = () => {
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl shadow-lg p-4">
+          <div className="bg-white rounded-2xl shadow-lg p-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">
@@ -708,25 +824,22 @@ const AdminHomePage = () => {
           <div className="bg-white rounded-2xl shadow-lg p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">
-                  Total Peminjaman
-                </p>
-                <p className="text-3xl font-bold text-gray-900">
+                <p className="text-sm font-medium text-gray-600">Total</p>
+                <p className="text-2xl font-bold text-gray-900">
                   {totalPeminjamChart}
                 </p>
               </div>
-              <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
-                <Package className="w-6 h-6 text-blue-600" />
+              <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center">
+                <Package className="w-5 h-5 text-blue-600" />
               </div>
             </div>
-            <div className="mt-4 flex items-center text-sm text-green-600">
-              <TrendingUp className="w-4 h-4 mr-1" />
+            <div className="mt-2 flex items-center text-xs text-green-600">
+              <TrendingUp className="w-3 h-3 mr-1" />
               <span>
                 {calculateTrend(
                   statistikOverview.totalPeminjaman,
                   Math.round(statistikOverview.totalPeminjaman * 0.88)
-                )}{" "}
-                dari bulan lalu
+                )}
               </span>
             </div>
           </div>
@@ -734,63 +847,56 @@ const AdminHomePage = () => {
           <div className="bg-white rounded-2xl shadow-lg p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">
-                  Pending Konfirmasi
-                </p>
-                <p className="text-3xl font-bold text-gray-900">
+                <p className="text-sm font-medium text-gray-600">Pending</p>
+                <p className="text-2xl font-bold text-gray-900">
                   {statistikOverview.pendingKonfirmasi}
                 </p>
               </div>
-              <div className="w-12 h-12 bg-yellow-100 rounded-xl flex items-center justify-center">
-                <Clock className="w-6 h-6 text-yellow-600" />
+              <div className="w-10 h-10 bg-yellow-100 rounded-xl flex items-center justify-center">
+                <Clock className="w-5 h-5 text-yellow-600" />
               </div>
             </div>
-            <div className="mt-4 flex items-center text-sm text-gray-600">
-              <span>Menunggu persetujuan</span>
+            <div className="mt-2 text-xs text-gray-500">
+              <span>Menunggu</span>
             </div>
           </div>
 
           <div className="bg-white rounded-2xl shadow-lg p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">
-                  Sedang Dipinjam
-                </p>
-                <p className="text-3xl font-bold text-gray-900">
+                <p className="text-sm font-medium text-gray-600">Aktif</p>
+                <p className="text-2xl font-bold text-gray-900">
                   {statistikOverview.sedangDipinjam}
                 </p>
               </div>
-              <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
-                <Users className="w-6 h-6 text-green-600" />
+              <div className="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center">
+                <Users className="w-5 h-5 text-green-600" />
               </div>
             </div>
-            <div className="mt-4 flex items-center text-sm text-gray-600">
-              <span>Aktif sekarang</span>
+            <div className="mt-2 text-xs text-gray-500">
+              <span>Dipinjam</span>
             </div>
           </div>
 
           <div className="bg-white rounded-2xl shadow-lg p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">
-                  Total Pendapatan
-                </p>
-                <p className="text-3xl font-bold text-gray-900">
+                <p className="text-sm font-medium text-gray-600">Pendapatan</p>
+                <p className="text-2xl font-bold text-gray-900">
                   {formatRupiah(statistikOverview.totalPendapatan)}
                 </p>
               </div>
-              <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center">
-                <TrendingUp className="w-6 h-6 text-purple-600" />
+              <div className="w-10 h-10 bg-purple-100 rounded-xl flex items-center justify-center">
+                <TrendingUp className="w-5 h-5 text-purple-600" />
               </div>
             </div>
-            <div className="mt-4 flex items-center text-sm text-green-600">
-              <TrendingUp className="w-4 h-4 mr-1" />
+            <div className="mt-2 flex items-center text-xs text-green-600">
+              <TrendingUp className="w-3 h-3 mr-1" />
               <span>
                 {calculateTrend(
                   statistikOverview.totalPendapatan,
                   Math.round(statistikOverview.totalPendapatan * 0.92)
-                )}{" "}
-                dari bulan lalu
+                )}
               </span>
             </div>
           </div>
@@ -821,8 +927,8 @@ const AdminHomePage = () => {
                 </div>
               </div>
 
-              {/* Table - Ukuran lebih kecil */}
-              <div className="overflow-x-auto">
+              {/* Desktop Table */}
+              <div className="hidden md:block overflow-x-auto">
                 <table className="w-full">
                   <thead>
                     <tr className="border-b border-gray-200">
@@ -845,7 +951,6 @@ const AdminHomePage = () => {
                       <tr key={item.id} className="hover:bg-gray-50">
                         <td className="py-3">
                           <div className="flex items-center space-x-3">
-                            {/* Gambar produk lebih kecil */}
                             <div className="w-10 h-10 bg-gray-200 rounded-lg flex items-center justify-center flex-shrink-0">
                               {item.barang_gambar ? (
                                 <img
@@ -950,129 +1055,29 @@ const AdminHomePage = () => {
                 </table>
               </div>
 
-              {filteredKonfirmasi.length === 0 && (
-                <div className="text-center py-6">
-                  <Package className="w-10 h-10 text-gray-400 mx-auto mb-3" />
-                  <p className="text-gray-500 text-sm">
-                    {searchTerm
-                      ? "Tidak ada hasil pencarian"
-                      : "Tidak ada data konfirmasi"}
-                  </p>
-                </div>
-              )}
+              {/* Mobile View - Card Layout */}
+              <div className="md:hidden space-y-4">
+                {filteredKonfirmasi.map((item) => (
+                  <MobileKonfirmasiCard key={item.id} item={item} />
+                ))}
+
+                {filteredKonfirmasi.length === 0 && (
+                  <div className="text-center py-8 bg-gray-50 rounded-xl">
+                    <Package className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+                    <p className="text-gray-500 text-sm">
+                      {searchTerm
+                        ? "Tidak ada hasil pencarian"
+                        : "Tidak ada data konfirmasi"}
+                    </p>
+                  </div>
+                )}
+              </div>
             </div>
 
-            {/* Mobile View - Konfirmasi Terbaru */}
-            <div className="md:hidden space-y-4 mt-6">
-              {filteredKonfirmasi.map((item) => (
-                <div
-                  key={item.id}
-                  className="bg-white rounded-2xl shadow-lg p-4 border border-gray-100"
-                >
-                  {/* Header dengan gambar dan info utama */}
-                  <div className="flex items-start space-x-3 mb-3">
-                    <div className="w-16 h-16 bg-gray-200 rounded-lg flex items-center justify-center flex-shrink-0">
-                      {item.barang_gambar ? (
-                        <img
-                          src={item.barang_gambar}
-                          alt={item.barang}
-                          className="w-16 h-16 object-cover rounded-lg"
-                        />
-                      ) : (
-                        <Package className="w-8 h-8 text-gray-400" />
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between mb-1">
-                        <h3 className="font-semibold text-gray-900 text-sm truncate">
-                          {item.nama}
-                        </h3>
-                        <span
-                          className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(
-                            item.status
-                          )}`}
-                        >
-                          {getStatusText(item.status)}
-                        </span>
-                      </div>
-                      <p className="text-xs text-gray-600 mb-1">
-                        NIM: {item.nim}
-                      </p>
-                      <p className="text-sm font-medium text-gray-900 truncate">
-                        {item.barang}
-                      </p>
-                      <p className="text-xs text-gray-500">
-                        {item.jumlah} unit • {formatRupiah(item.totalHarga)}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Info Tambahan */}
-                  <div className="grid grid-cols-2 gap-2 text-xs text-gray-600 mb-3">
-                    <div className="flex items-center space-x-1">
-                      <Calendar className="w-3 h-3 text-blue-500" />
-                      <span>{item.tanggalPinjam}</span>
-                    </div>
-                    <div className="flex items-center space-x-1">
-                      <Calendar className="w-3 h-3 text-green-500" />
-                      <span>{item.tanggalKembali}</span>
-                    </div>
-                  </div>
-
-                  {/* Action Buttons */}
-                  <div className="flex justify-between items-center pt-3 border-t border-gray-100">
-                    <div className="flex space-x-2">
-                      <button
-                        onClick={() => handleViewDetails(item)}
-                        className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                      >
-                        <Eye className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => handleContact(item.telepon)}
-                        disabled={!item.telepon}
-                        className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors disabled:opacity-50"
-                      >
-                        <MessageCircle className="w-4 h-4" />
-                      </button>
-                    </div>
-
-                    {item.status === "pending" && (
-                      <div className="flex space-x-2">
-                        <button
-                          onClick={() => handleApprove(item.id)}
-                          className="bg-green-600 text-white px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-green-700 transition-colors"
-                        >
-                          Setujui
-                        </button>
-                        <button
-                          onClick={() => handleReject(item.id)}
-                          className="bg-red-600 text-white px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-red-700 transition-colors"
-                        >
-                          Tolak
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ))}
-
-              {filteredKonfirmasi.length === 0 && (
-                <div className="text-center py-8 bg-white rounded-2xl shadow-lg">
-                  <Package className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-                  <p className="text-gray-500 text-sm">
-                    {searchTerm
-                      ? "Tidak ada hasil pencarian"
-                      : "Tidak ada data konfirmasi"}
-                  </p>
-                </div>
-              )}
-            </div>
-
-            <div className="p-3 bg-gray-50 rounded-b-2xl">
+            <div className="p-4 bg-gray-50 rounded-b-2xl">
               <button
-                onClick={() => (window.location.href = "/peminjaman")}
-                className="w-full text-center text-blue-600 hover:text-blue-700 font-medium text-xs"
+                onClick={() => (window.location.href = "/admin/daftarpeminjam")}
+                className="w-full text-center text-blue-600 hover:text-blue-700 font-medium text-sm"
               >
                 Lihat Semua Konfirmasi →
               </button>
