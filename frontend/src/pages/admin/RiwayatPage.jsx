@@ -222,7 +222,7 @@ const RiwayatPage = () => {
             </div>
           </div>
 
-          <div className="flex items-center space-x-3">
+          <div className="hidden md:flex items-center space-x-3">
             <button
               onClick={handleRefresh}
               className="flex items-center space-x-2 px-4 py-2 border border-gray-300 rounded-xl hover:bg-gray-50 transition-colors duration-300"
@@ -238,24 +238,6 @@ const RiwayatPage = () => {
               <span>Export Data</span>
             </button>
           </div>
-        </div>
-
-        {/* Mobile Actions */}
-        <div className="flex md:hidden items-center justify-between bg-white rounded-2xl shadow-lg p-4">
-          <button
-            onClick={handleRefresh}
-            className="flex items-center space-x-2 px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors duration-300 text-sm"
-          >
-            <RefreshCw className="w-4 h-4" />
-            <span>Refresh</span>
-          </button>
-          <button
-            onClick={handleExport}
-            className="flex items-center space-x-2 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors duration-300 text-sm"
-          >
-            <Download className="w-4 h-4" />
-            <span>Export</span>
-          </button>
         </div>
 
         {/* Success Message */}
@@ -284,7 +266,7 @@ const RiwayatPage = () => {
         {statistik && (
           <>
             {/* Desktop Stats */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <div className="hidden md:grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
               <div className="bg-white rounded-2xl shadow-lg p-6">
                 <div className="flex items-center justify-between">
                   <div>
@@ -438,6 +420,24 @@ const RiwayatPage = () => {
             </div>
           </div>
 
+          {/* Mobile Actions */}
+          <div className="flex md:hidden items-center justify-between mt-4">
+            <button
+              onClick={handleRefresh}
+              className="flex items-center space-x-2 px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors duration-300 text-sm"
+            >
+              <RefreshCw className="w-4 h-4" />
+              <span>Refresh</span>
+            </button>
+            <button
+              onClick={handleExport}
+              className="flex items-center space-x-2 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors duration-300 text-sm"
+            >
+              <Download className="w-4 h-4" />
+              <span>Export</span>
+            </button>
+          </div>
+
           {/* Results Count */}
           <div className="flex items-center justify-between mt-4">
             <span className="text-gray-600 text-sm">
@@ -451,8 +451,8 @@ const RiwayatPage = () => {
           </div>
         </div>
 
-        {/* Table */}
-        <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
+        {/* Desktop Table */}
+        <div className="hidden md:block bg-white rounded-2xl shadow-lg overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
@@ -595,132 +595,6 @@ const RiwayatPage = () => {
               </tbody>
             </table>
 
-            {/* Mobile View */}
-            <div className="md:hidden space-y-4">
-              {currentItems.map((item) => (
-                <div
-                  key={item.id}
-                  className="bg-white rounded-2xl shadow-lg p-4 border border-gray-100"
-                >
-                  {/* Header dengan gambar dan info utama */}
-                  <div className="flex items-start space-x-3 mb-3">
-                    <div className="w-16 h-16 bg-gray-200 rounded-lg flex items-center justify-center flex-shrink-0">
-                      {item.barang_gambar ? (
-                        <img
-                          src={item.barang_gambar}
-                          alt={item.barang_nama}
-                          className="w-16 h-16 object-cover rounded-lg"
-                        />
-                      ) : (
-                        <Package className="w-8 h-8 text-gray-400" />
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between mb-1">
-                        <h3 className="font-semibold text-gray-900 text-sm">
-                          {item.nama_lengkap || "-"}
-                        </h3>
-                        <div className="flex flex-col items-end space-y-1">
-                          <span
-                            className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(
-                              item.status_akhir
-                            )}`}
-                          >
-                            {getStatusText(item.status_akhir)}
-                          </span>
-                          {item.kondisi_kembali && (
-                            <span
-                              className={`px-2 py-1 rounded-full text-xs ${getKondisiColor(
-                                item.kondisi_kembali
-                              )}`}
-                            >
-                              {getKondisiText(item.kondisi_kembali)}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                      <p className="text-xs text-gray-600 mb-1">
-                        NIM: {item.nim || "-"}
-                      </p>
-                      <p className="text-sm font-medium text-gray-900">
-                        {item.barang_nama || "Barang tidak tersedia"}
-                      </p>
-                      <p className="text-xs text-gray-500">
-                        {item.jumlah_pinjam || 0} unit • {item.instansi || "-"}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Info Tambahan */}
-                  <div className="grid grid-cols-2 gap-3 text-xs text-gray-600 mb-3">
-                    <div className="flex items-center space-x-1">
-                      <Calendar className="w-3 h-3 text-blue-500" />
-                      <span>{formatDate(item.tanggal_mulai)}</span>
-                    </div>
-                    <div className="flex items-center space-x-1">
-                      <Calendar className="w-3 h-3 text-green-500" />
-                      <span>{formatDate(item.tanggal_selesai)}</span>
-                    </div>
-                    <div>
-                      <p className="font-semibold text-gray-900">
-                        {formatRupiah(item.total_biaya)}
-                      </p>
-                    </div>
-                    <div>
-                      {item.denda > 0 ? (
-                        <p className="text-red-600">
-                          Denda: {formatRupiah(item.denda)}
-                        </p>
-                      ) : (
-                        <p className="text-gray-500">Tidak ada denda</p>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Waktu dan Actions */}
-                  <div className="flex items-center justify-between pt-3 border-t border-gray-100">
-                    <p className="text-xs text-gray-500">
-                      {formatDateTime(item.completed_at)}
-                    </p>
-                    <div className="flex space-x-2">
-                      <button
-                        onClick={() => {
-                          setSelectedRiwayat(item);
-                          setShowDetailModal(true);
-                        }}
-                        className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                      >
-                        <Eye className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => handleContact(item.telepon)}
-                        disabled={!item.telepon}
-                        className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors disabled:opacity-50"
-                      >
-                        <MessageCircle className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-
-              {currentItems.length === 0 && !loading && (
-                <div className="text-center py-8 bg-white rounded-2xl shadow-lg">
-                  <Package className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-                  <p className="text-gray-500 text-sm mb-2">
-                    Tidak ada data riwayat peminjaman
-                  </p>
-                  <p className="text-gray-400 text-xs">
-                    {searchTerm ||
-                    statusFilter !== "semua" ||
-                    kondisiFilter !== "semua"
-                      ? "Coba ubah pencarian atau filter"
-                      : "Belum ada riwayat peminjaman yang tercatat"}
-                  </p>
-                </div>
-              )}
-            </div>
-
             {currentItems.length === 0 && !loading && (
               <div className="text-center py-12">
                 <Package className="w-12 h-12 text-gray-400 mx-auto mb-4" />
@@ -786,6 +660,132 @@ const RiwayatPage = () => {
                   </button>
                 </div>
               </div>
+            </div>
+          )}
+        </div>
+
+        {/* Mobile View */}
+        <div className="md:hidden space-y-4">
+          {currentItems.map((item) => (
+            <div
+              key={item.id}
+              className="bg-white rounded-2xl shadow-lg p-4 border border-gray-100"
+            >
+              {/* Header dengan gambar dan info utama */}
+              <div className="flex items-start space-x-3 mb-3">
+                <div className="w-16 h-16 bg-gray-200 rounded-lg flex items-center justify-center flex-shrink-0">
+                  {item.barang_gambar ? (
+                    <img
+                      src={item.barang_gambar}
+                      alt={item.barang_nama}
+                      className="w-16 h-16 object-cover rounded-lg"
+                    />
+                  ) : (
+                    <Package className="w-8 h-8 text-gray-400" />
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between mb-1">
+                    <h3 className="font-semibold text-gray-900 text-sm">
+                      {item.nama_lengkap || "-"}
+                    </h3>
+                    <div className="flex flex-col items-end space-y-1">
+                      <span
+                        className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(
+                          item.status_akhir
+                        )}`}
+                      >
+                        {getStatusText(item.status_akhir)}
+                      </span>
+                      {item.kondisi_kembali && (
+                        <span
+                          className={`px-2 py-1 rounded-full text-xs ${getKondisiColor(
+                            item.kondisi_kembali
+                          )}`}
+                        >
+                          {getKondisiText(item.kondisi_kembali)}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <p className="text-xs text-gray-600 mb-1">
+                    NIM: {item.nim || "-"}
+                  </p>
+                  <p className="text-sm font-medium text-gray-900">
+                    {item.barang_nama || "Barang tidak tersedia"}
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    {item.jumlah_pinjam || 0} unit • {item.instansi || "-"}
+                  </p>
+                </div>
+              </div>
+
+              {/* Info Tambahan */}
+              <div className="grid grid-cols-2 gap-3 text-xs text-gray-600 mb-3">
+                <div className="flex items-center space-x-1">
+                  <Calendar className="w-3 h-3 text-blue-500" />
+                  <span>{formatDate(item.tanggal_mulai)}</span>
+                </div>
+                <div className="flex items-center space-x-1">
+                  <Calendar className="w-3 h-3 text-green-500" />
+                  <span>{formatDate(item.tanggal_selesai)}</span>
+                </div>
+                <div>
+                  <p className="font-semibold text-gray-900">
+                    {formatRupiah(item.total_biaya)}
+                  </p>
+                </div>
+                <div>
+                  {item.denda > 0 ? (
+                    <p className="text-red-600">
+                      Denda: {formatRupiah(item.denda)}
+                    </p>
+                  ) : (
+                    <p className="text-gray-500">Tidak ada denda</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Waktu dan Actions */}
+              <div className="flex items-center justify-between pt-3 border-t border-gray-100">
+                <p className="text-xs text-gray-500">
+                  {formatDateTime(item.completed_at)}
+                </p>
+                <div className="flex space-x-2">
+                  <button
+                    onClick={() => {
+                      setSelectedRiwayat(item);
+                      setShowDetailModal(true);
+                    }}
+                    className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                  >
+                    <Eye className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => handleContact(item.telepon)}
+                    disabled={!item.telepon}
+                    className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors disabled:opacity-50"
+                  >
+                    <MessageCircle className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+
+          {currentItems.length === 0 && !loading && (
+            <div className="text-center py-8 bg-white rounded-2xl shadow-lg">
+              <Package className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+              <p className="text-gray-500 text-sm mb-2">
+                Tidak ada data riwayat peminjaman
+              </p>
+              <p className="text-gray-400 text-xs">
+                {searchTerm ||
+                statusFilter !== "semua" ||
+                kondisiFilter !== "semua"
+                  ? "Coba ubah pencarian atau filter"
+                  : "Belum ada riwayat peminjaman yang tercatat"}
+              </p>
             </div>
           )}
         </div>

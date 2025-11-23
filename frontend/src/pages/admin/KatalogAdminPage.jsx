@@ -244,7 +244,7 @@ const KatalogAdminPage = () => {
                 Kelola semua barang inventaris Racana Diponegoro
               </p>
             </div>
-            <div className="flex items-center space-x-3">
+            <div className="hidden md:flex items-center space-x-3">
               <button
                 onClick={handleRefresh}
                 className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-3 rounded-2xl font-semibold transition-all duration-300 flex items-center space-x-2"
@@ -313,7 +313,7 @@ const KatalogAdminPage = () => {
             </div>
 
             {/* Layout Toggle */}
-            <div className="flex items-center space-x-2">
+            <div className="hidden md:flex items-center space-x-2">
               <button
                 onClick={() => setLayoutMode("grid")}
                 className={`p-3 rounded-xl transition-all duration-300 ${
@@ -337,6 +337,46 @@ const KatalogAdminPage = () => {
             </div>
           </div>
 
+          {/* Mobile Controls */}
+          <div className="md:hidden flex items-center justify-between mt-4">
+            <div className="flex space-x-2">
+              <button
+                onClick={() => setLayoutMode("grid")}
+                className={`p-2 rounded-lg transition-all duration-300 ${
+                  layoutMode === "grid"
+                    ? "bg-blue-600 text-white"
+                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                }`}
+              >
+                <Grid className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => setLayoutMode("list")}
+                className={`p-2 rounded-lg transition-all duration-300 ${
+                  layoutMode === "list"
+                    ? "bg-blue-600 text-white"
+                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                }`}
+              >
+                <List className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="flex space-x-2">
+              <button
+                onClick={handleRefresh}
+                className="p-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition-all duration-300"
+              >
+                <RefreshCw className="w-4 h-4" />
+              </button>
+              <button
+                onClick={handleAddNew}
+                className="p-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all duration-300"
+              >
+                <Plus className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+
           {/* Results Count */}
           <div className="flex items-center justify-between mt-4">
             <span className="text-gray-600">
@@ -348,7 +388,7 @@ const KatalogAdminPage = () => {
           </div>
         </div>
 
-        {/* Grid Layout */}
+        {/* Content */}
         {layoutMode === "grid" && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
             {filteredBarang.map((barang) => {
@@ -646,7 +686,7 @@ const KatalogAdminPage = () => {
         )}
       </div>
 
-      {/* Mobile View */}
+      {/* Mobile View - Single Implementation */}
       <div className="md:hidden space-y-4">
         {filteredBarang.map((barang) => {
           const gambarUtama = getGambarUtama(barang);

@@ -280,8 +280,8 @@ const DetailAdminPage = () => {
             <span>Kembali ke Katalog</span>
           </button>
 
-          {/* Admin Actions */}
-          <div className="flex items-center space-x-3">
+          {/* Admin Actions - Desktop */}
+          <div className="hidden md:flex items-center space-x-3">
             <button
               onClick={toggleStatus}
               className={`px-4 py-2 rounded-xl font-semibold transition-all duration-300 ${
@@ -318,38 +318,6 @@ const DetailAdminPage = () => {
                 <Trash2 className="w-5 h-5" />
               </button>
             </div>
-          </div>
-
-          {/* Mobile Action */}
-          <div className="flex md:hidden items-center justify-between w-full bg-white rounded-2xl shadow-lg p-4">
-            <div className="flex space-x-2">
-              <button
-                onClick={handleShare}
-                className="p-3 bg-gray-100 text-gray-600 rounded-xl hover:bg-gray-200 transition-all duration-300"
-                title="Bagikan"
-              >
-                <Share2 className="w-5 h-5" />
-              </button>
-              <button
-                onClick={handleEdit}
-                className="p-3 bg-blue-100 text-blue-600 rounded-xl hover:bg-blue-200 transition-all duration-300"
-                title="Edit Barang"
-              >
-                <Edit className="w-5 h-5" />
-              </button>
-            </div>
-            <button
-              onClick={toggleStatus}
-              className={`px-4 py-2 rounded-xl font-semibold transition-all duration-300 ${
-                barangDetail.status === "tersedia"
-                  ? "bg-green-600 text-white hover:bg-green-700"
-                  : "bg-red-600 text-white hover:bg-red-700"
-              }`}
-            >
-              {barangDetail.status === "tersedia"
-                ? "Tidak Tersedia"
-                : "Tersedia"}
-            </button>
           </div>
         </div>
 
@@ -486,32 +454,6 @@ const DetailAdminPage = () => {
               </div>
             </div>
 
-            {/* Admin Action Buttons - Mobile Stack */}
-            <div className="flex flex-col space-y-3 md:hidden">
-              <button
-                onClick={handleEdit}
-                className="bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center space-x-2"
-              >
-                <Edit className="w-5 h-5" />
-                <span>Edit Barang</span>
-              </button>
-              <button
-                onClick={toggleStatus}
-                className={`py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center space-x-2 ${
-                  barangDetail.status === "tersedia"
-                    ? "bg-red-600 hover:bg-red-700 text-white"
-                    : "bg-green-600 hover:bg-green-700 text-white"
-                }`}
-              >
-                <CheckCircle className="w-5 h-5" />
-                <span>
-                  {barangDetail.status === "tersedia"
-                    ? "Set Tidak Tersedia"
-                    : "Set Tersedia"}
-                </span>
-              </button>
-            </div>
-
             {/* Additional Info */}
             <div className="bg-blue-50 rounded-2xl p-4 md:p-6 border border-blue-200">
               <h3 className="font-semibold text-gray-800 mb-3 flex items-center space-x-2">
@@ -585,9 +527,9 @@ const DetailAdminPage = () => {
               )}
           </div>
 
-          {/* Related Products & Quick Actions - Mobile Bottom */}
+          {/* Related Products & Quick Actions */}
           <div className="space-y-6">
-            {/* Quick Actions - Mobile Hidden (sudah ada di atas) */}
+            {/* Quick Actions - Desktop */}
             <div className="hidden md:block bg-white rounded-2xl shadow-lg p-6">
               <h2 className="text-xl font-bold text-gray-800 mb-4">
                 Aksi Cepat
@@ -697,6 +639,39 @@ const DetailAdminPage = () => {
         </div>
       </div>
 
+      {/* Mobile Action Buttons - Fixed Bottom */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 shadow-lg">
+        <div className="grid grid-cols-3 gap-2">
+          <button
+            onClick={handleEdit}
+            className="bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl font-semibold transition-all duration-300 flex items-center justify-center space-x-2 text-sm"
+          >
+            <Edit className="w-4 h-4" />
+            <span>Edit</span>
+          </button>
+          <button
+            onClick={toggleStatus}
+            className={`py-3 rounded-xl font-semibold transition-all duration-300 flex items-center justify-center space-x-2 text-sm ${
+              barangDetail.status === "tersedia"
+                ? "bg-red-600 hover:bg-red-700 text-white"
+                : "bg-green-600 hover:bg-green-700 text-white"
+            }`}
+          >
+            <CheckCircle className="w-4 h-4" />
+            <span>
+              {barangDetail.status === "tersedia" ? "Nonaktif" : "Aktif"}
+            </span>
+          </button>
+          <button
+            onClick={handleDelete}
+            className="bg-red-600 hover:bg-red-700 text-white py-3 rounded-xl font-semibold transition-all duration-300 flex items-center justify-center space-x-2 text-sm"
+          >
+            <Trash2 className="w-4 h-4" />
+            <span>Hapus</span>
+          </button>
+        </div>
+      </div>
+
       {/* Delete Confirmation Modal */}
       {showDeleteModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -726,17 +701,6 @@ const DetailAdminPage = () => {
           </div>
         </div>
       )}
-
-      {/* Delete Button - Mobile Only */}
-      <div className="md:hidden">
-        <button
-          onClick={handleDelete}
-          className="w-full bg-red-600 hover:bg-red-700 text-white py-3 rounded-xl font-semibold transition-all duration-300 flex items-center justify-center space-x-2"
-        >
-          <Trash2 className="w-5 h-5" />
-          <span>Hapus Barang</span>
-        </button>
-      </div>
     </div>
   );
 };

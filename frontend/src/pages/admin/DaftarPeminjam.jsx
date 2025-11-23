@@ -1113,20 +1113,6 @@ const DaftarPeminjam = () => {
                   </div>
                 </div>
               ))}
-
-              {currentItems.length === 0 && !loading && (
-                <div className="text-center py-12 bg-white rounded-2xl shadow-lg">
-                  <Package className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-                  <p className="text-gray-500 text-lg mb-2">
-                    Tidak ada data peminjam
-                  </p>
-                  <p className="text-gray-400 text-sm">
-                    {searchTerm || statusFilter !== "semua"
-                      ? "Coba ubah pencarian atau filter"
-                      : "Belum ada peminjaman yang tercatat"}
-                  </p>
-                </div>
-              )}
             </div>
 
             {currentItems.length === 0 && !loading && (
