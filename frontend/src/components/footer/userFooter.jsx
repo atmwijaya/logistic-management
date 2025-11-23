@@ -13,15 +13,15 @@ import {
   MessageCircle,
 } from "lucide-react";
 import { useState } from "react";
-import phoneAPI from "../../api/phoneNumberAPI";
+import contactAPI from "../../api/contactAPI";
 
 const Footer = () => {
   const currentYear = new Date().getFullYear();
 
   const quickLinks = [
-    { name: "Beranda", href: "/" },
-    { name: "Cek Nama", href: "/daftar-anggota" },
-    { name: "FAQ", href: "/faq" },
+    { path: '/', name: 'Beranda' },
+    { path: '/katalog', name: 'Katalog' },
+    { path: '/faq', name: 'FAQ' }
   ];
 
   const services = [
@@ -62,27 +62,27 @@ const Footer = () => {
     {
       icon: Instagram,
       name: "Instagram",
-      href: "https://instagram.com/racanadiponegoro",
+      href: "https://instagram.com/racana.diponegoro",
       color: "hover:bg-pink-600",
     },
     {
       icon: Twitter,
-      name: "Twitter",
-      href: "https://twitter.com/racanadiponegoro",
+      name: "X",
+      href: "https://twitter.com/pramukaundip",
       color: "hover:bg-blue-400",
     },
     {
       icon: Youtube,
       name: "YouTube",
-      href: "https://youtube.com/racanadiponegoro",
+      href: "https://www.youtube.com/channel/UCmSlPJt0lswkz_SeqOcap4g",
       color: "hover:bg-red-600",
     },
   ];
 
   const handleWhatsAppClick = async () => {
     try {
-      const response = await phoneAPI.getPhone();
-      const phoneNumber = response.data || "";
+      const response = await contactAPI.getContact();
+      const phoneNumber = response.phone || "";
 
       const preFilledMessage =
         "Halo, saya ingin bertanya tentang layanan logistik Racana Diponegoro.";

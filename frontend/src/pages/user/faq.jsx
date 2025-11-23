@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ChevronDown, ChevronUp, HelpCircle, Loader2 } from 'lucide-react';
 import faqAPI from '../../api/faqAPI';
-import phoneAPI from '../../api/phoneNumberAPI';
+import phoneAPI from '../../api/contactAPI';
 
 const FAQItem = ({ question, answer, isOpen, onToggle }) => {
   return (

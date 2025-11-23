@@ -1,8 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { MapPin, Clock, Phone, Mail, Navigation, ExternalLink } from 'lucide-react';
+import contactAPI from '../../api/contactAPI'; // Sesuaikan path import
 
 const MapsSection = () => {
   const [isMapLoaded, setIsMapLoaded] = useState(false);
+  const [contactInfo, setContactInfo] = useState({
+    phone: "+62 812-3456-7890", // Default value
+    email: "logistik@racanadiponegoro.ac.id" // Default value
+  });
+  const [loading, setLoading] = useState(true);
 
   const locationInfo = {
     name: "Gudang Logistik Racana Diponegoro",
@@ -16,12 +22,32 @@ const MapsSection = () => {
     operatingHours: {
       weekdays: "08:00 - 16:00 WIB",
       weekends: "08:00 - 14:00 WIB"
-    },
-    contact: {
-      phone: "+62 812-3456-7890",
-      email: "logistik@racanadiponegoro.ac.id"
     }
   };
+
+  // Load contact info from API
+  useEffect(() => {
+    const loadContactInfo = async () => {
+      try {
+        setLoading(true);
+        const result = await contactAPI.getContact();
+        
+        if (result.success) {
+          setContactInfo({
+            phone: result.phone || "+62 812-3456-7890",
+            email: result.email || "logistik@racanadiponegoro.ac.id"
+          });
+        }
+      } catch (error) {
+        console.error("Error loading contact info:", error);
+        // Tetap gunakan default values jika error
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadContactInfo();
+  }, []);
 
   const handleMapLoad = () => {
     setIsMapLoaded(true);
@@ -34,6 +60,34 @@ const MapsSection = () => {
   const handleGetDirections = () => {
     const { lat, lng } = locationInfo.coordinates;
     window.open(`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`, '_blank');
+  };
+
+  const handleCallPhone = () => {
+    // Hapus karakter non-digit untuk panggilan telepon
+    const phoneNumber = contactInfo.phone.replace(/[^\d+]/g, '');
+    window.open(`tel:${phoneNumber}`, '_self');
+  };
+
+  const handleSendEmail = () => {
+    window.open(`mailto:${contactInfo.email}`, '_self');
+  };
+
+  // Format phone number untuk tampilan yang lebih rapi
+  const formatPhoneNumber = (phone) => {
+    if (!phone) return "+62 812-3456-7890";
+    
+    // Jika sudah berformat, biarkan saja
+    if (phone.includes('-')) return phone;
+    
+    // Format: +62 812-3456-7890
+    const cleanPhone = phone.replace(/\D/g, '');
+    if (cleanPhone.startsWith('62')) {
+      const rest = cleanPhone.slice(2);
+      if (rest.length >= 3) {
+        return `+62 ${rest.slice(0, 3)}-${rest.slice(3, 7)}-${rest.slice(7)}`;
+      }
+    }
+    return phone;
   };
 
   return (
@@ -150,14 +204,24 @@ const MapsSection = () => {
                   <Phone className="w-5 h-5 text-green-600" />
                   <div>
                     <p className="text-sm text-slate-500">Telepon/WhatsApp</p>
-                    <p className="font-semibold text-slate-800">{locationInfo.contact.phone}</p>
+                    {loading ? (
+                      <div className="h-4 bg-slate-200 rounded animate-pulse w-32"></div>
+                    ) : (
+                      <p className="font-semibold text-slate-800">
+                        {formatPhoneNumber(contactInfo.phone)}
+                      </p>
+                    )}
                   </div>
                 </div>
                 <div className="flex items-center space-x-3">
                   <Mail className="w-5 h-5 text-blue-600" />
                   <div>
                     <p className="text-sm text-slate-500">Email</p>
-                    <p className="font-semibold text-slate-800">{locationInfo.contact.email}</p>
+                    {loading ? (
+                      <div className="h-4 bg-slate-200 rounded animate-pulse w-40"></div>
+                    ) : (
+                      <p className="font-semibold text-slate-800">{contactInfo.email}</p>
+                    )}
                   </div>
                 </div>
               </div>
@@ -195,11 +259,23 @@ const MapsSection = () => {
                 <Navigation className="w-5 h-5" />
                 <span>Dapatkan Petunjuk Arah</span>
               </button>
-              <button className="flex-1 bg-white border border-slate-300 text-slate-700 py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300 flex items-center justify-center space-x-2">
+              <button 
+                onClick={handleCallPhone}
+                className="flex-1 bg-white border border-slate-300 text-slate-700 py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300 flex items-center justify-center space-x-2"
+              >
                 <Phone className="w-5 h-5" />
                 <span>Hubungi Kami</span>
               </button>
             </div>
+
+            {/* Email Action */}
+            <button 
+              onClick={handleSendEmail}
+              className="w-full bg-white border border-slate-300 text-slate-700 py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300 flex items-center justify-center space-x-2"
+            >
+              <Mail className="w-5 h-5" />
+              <span>Kirim Email</span>
+            </button>
           </div>
         </div>
       </div>

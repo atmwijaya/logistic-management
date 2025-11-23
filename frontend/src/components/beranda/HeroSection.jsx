@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Package, Play, ArrowRight, ClipboardList, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import phoneAPI from '../../api/phoneNumberAPI';
+import phoneAPI from '../../api/contactAPI';
 
 const HeroSection = () => {
   const [currentSlide, setCurrentSlide] = useState(0);

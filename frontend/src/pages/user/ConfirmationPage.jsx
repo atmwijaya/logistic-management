@@ -19,7 +19,7 @@ import {
 } from "lucide-react";
 import katalogAPI from "../../api/katalogAPI";
 import peminjamanAPI from "../../api/peminjamanAPI";
-import phoneAPI from "../../api/phoneNumberAPI";
+import contactAPI from "../../api/contactAPI";
 
 const ConfirmationPage = () => {
   const { id } = useParams();
@@ -298,8 +298,8 @@ const ConfirmationPage = () => {
           `Apakah barang tersedia untuk periode tersebut?%0A` +
           `Terima kasih!`;
 
-        const response = await phoneAPI.getPhone();
-        const phoneNumber = response.data || "";
+        const response = await contactAPI.getContact();
+        const phoneNumber = response.phone || "";
 
         setSubmissionTime(new Date().toLocaleString("id-ID"));
         setIsSubmitted(true);
