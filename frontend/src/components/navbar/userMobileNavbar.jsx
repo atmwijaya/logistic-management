@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Menu, X, Home, Package, HelpCircle } from 'lucide-react';
+import { Menu, X, Home, Package, HelpCircle, ChevronDown } from 'lucide-react';
 import logo from '../../assets/Dewasaku_Putih.png';
 
 const UserMobileNavbar = () => {
@@ -39,70 +39,72 @@ const UserMobileNavbar = () => {
           {/* Hamburger Menu */}
           <button
             onClick={() => setIsOpen(!isOpen)}
-            className="text-white p-2 rounded-lg hover:bg-blue-800 transition-colors"
+            className="text-white p-2 rounded-lg hover:bg-blue-800 transition-colors duration-300"
           >
             {isOpen ? <X size={24} /> : <Menu size={24} />}
           </button>
         </div>
       </nav>
 
-      {/* Mobile Menu Overlay */}
-      {isOpen && (
-        <div className="md:hidden fixed inset-0 z-50 bg-black bg-opacity-50">
-          {/* Sidebar Menu */}
-          <div className="absolute top-0 right-0 h-full w-64 bg-white shadow-xl">
-            {/* Header */}
-            <div className="bg-blue-900 p-4 flex items-center justify-between">
-              <img
-                src={logo}
-                className="h-10 object-contain"
-                alt="Logo Racana Diponegoro"
-              />
-              <button
-                onClick={() => setIsOpen(false)}
-                className="text-white p-1 rounded-lg hover:bg-blue-800 transition-colors"
-              >
-                <X size={20} />
-              </button>
-            </div>
-
-            {/* Menu Items */}
-            <div className="p-4">
-              {navItems.map((item) => {
-                const Icon = item.icon;
-                const isActive = location.pathname === item.path;
-                
-                return (
-                  <div
-                    key={item.path}
-                    onClick={() => handleNavigation(item.path)}
-                    className={`flex items-center space-x-3 p-3 rounded-lg mb-2 cursor-pointer transition-all ${
-                      isActive 
-                        ? 'bg-blue-100 text-blue-700 border-r-4 border-blue-600' 
-                        : 'text-gray-700 hover:bg-gray-100'
-                    }`}
-                  >
-                    <Icon size={20} className={isActive ? 'text-blue-600' : 'text-gray-500'} />
-                    <span className="font-medium">{item.name}</span>
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Footer */}
-            <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-200">
-              <div className="text-center text-sm text-gray-500">
-                Logistik Manager
-              </div>
-            </div>
+      {/* Dropdown Menu */}
+      <div className={`md:hidden fixed inset-x-0 top-16 z-50 transition-all duration-500 ease-in-out ${
+        isOpen ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4 pointer-events-none'
+      }`}>
+        <div className="bg-white shadow-2xl border-t border-blue-200 mx-4 rounded-b-2xl overflow-hidden">
+          {/* Menu Items */}
+          <div className="py-2">
+            {navItems.map((item, index) => {
+              const Icon = item.icon;
+              const isActive = location.pathname === item.path;
+              
+              return (
+                <div
+                  key={item.path}
+                  onClick={() => handleNavigation(item.path)}
+                  className={`flex items-center space-x-3 p-4 border-b border-gray-100 last:border-b-0 cursor-pointer transition-all duration-300 ${
+                    isActive 
+                      ? 'bg-blue-50 text-blue-700' 
+                      : 'text-gray-700 hover:bg-gray-50'
+                  } ${
+                    isOpen ? 'translate-y-0 opacity-100' : 'translate-y-2 opacity-0'
+                  }`}
+                  style={{
+                    transitionDelay: isOpen ? `${index * 100}ms` : '0ms'
+                  }}
+                >
+                  <Icon 
+                    size={22} 
+                    className={isActive ? 'text-blue-600' : 'text-gray-500'} 
+                  />
+                  <span className="font-medium text-lg">{item.name}</span>
+                  {isActive && (
+                    <div className="ml-auto w-2 h-2 bg-blue-600 rounded-full animate-pulse" />
+                  )}
+                </div>
+              );
+            })}
           </div>
 
-          {/* Backdrop */}
+          {/* Footer */}
+          <div className="bg-blue-50 py-3 px-4">
+            <div className="text-center text-sm text-blue-700 font-medium">
+              Logistik Manager
+            </div>
+          </div>
+        </div>
+
+        {/* Backdrop */}
+        {isOpen && (
           <div 
-            className="absolute inset-0"
+            className="fixed inset-0 bg-black bg-opacity-30 -z-10"
             onClick={() => setIsOpen(false)}
           />
-        </div>
+        )}
+      </div>
+
+      {/* Background overlay untuk mencegah scroll */}
+      {isOpen && (
+        <div className="md:hidden fixed inset-0 bg-black bg-opacity-0 z-40" />
       )}
     </>
   );
