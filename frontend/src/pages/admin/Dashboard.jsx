@@ -16,7 +16,6 @@ import {
 } from "lucide-react";
 import peminjamanAPI from "../../api/peminjamanAPI";
 import riwayatAPI from "../../api/riwayatAPI";
-import { data } from "react-router-dom";
 
 const AdminHomePage = () => {
   const [selectedPeriod, setSelectedPeriod] = useState("");
@@ -611,8 +610,9 @@ const AdminHomePage = () => {
         </div>
 
         {/* Statistik Overview */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white rounded-2xl shadow-lg p-6">
+        <div className="hidden md:grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        {/* Desktop stats */}
+          <div className="bg-white rounded-2xl shadow-lg p-4">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">
@@ -638,7 +638,7 @@ const AdminHomePage = () => {
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl shadow-lg p-6">
+          <div className="bg-white rounded-2xl shadow-lg p-4">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">
@@ -657,7 +657,7 @@ const AdminHomePage = () => {
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl shadow-lg p-6">
+          <div className="bg-white rounded-2xl shadow-lg p-4">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">
@@ -676,7 +676,100 @@ const AdminHomePage = () => {
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl shadow-lg p-6">
+          <div className="bg-white rounded-2xl shadow-lg p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">
+                  Total Pendapatan
+                </p>
+                <p className="text-3xl font-bold text-gray-900">
+                  {formatRupiah(statistikOverview.totalPendapatan)}
+                </p>
+              </div>
+              <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center">
+                <TrendingUp className="w-6 h-6 text-purple-600" />
+              </div>
+            </div>
+            <div className="mt-4 flex items-center text-sm text-green-600">
+              <TrendingUp className="w-4 h-4 mr-1" />
+              <span>
+                {calculateTrend(
+                  statistikOverview.totalPendapatan,
+                  Math.round(statistikOverview.totalPendapatan * 0.92)
+                )}{" "}
+                dari bulan lalu
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Mobile Stats */}
+        <div className="grid grid-cols-2 gap-4 mb-6 md:hidden">
+          <div className="bg-white rounded-2xl shadow-lg p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">
+                  Total Peminjaman
+                </p>
+                <p className="text-3xl font-bold text-gray-900">
+                  {totalPeminjamChart}
+                </p>
+              </div>
+              <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
+                <Package className="w-6 h-6 text-blue-600" />
+              </div>
+            </div>
+            <div className="mt-4 flex items-center text-sm text-green-600">
+              <TrendingUp className="w-4 h-4 mr-1" />
+              <span>
+                {calculateTrend(
+                  statistikOverview.totalPeminjaman,
+                  Math.round(statistikOverview.totalPeminjaman * 0.88)
+                )}{" "}
+                dari bulan lalu
+              </span>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-2xl shadow-lg p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">
+                  Pending Konfirmasi
+                </p>
+                <p className="text-3xl font-bold text-gray-900">
+                  {statistikOverview.pendingKonfirmasi}
+                </p>
+              </div>
+              <div className="w-12 h-12 bg-yellow-100 rounded-xl flex items-center justify-center">
+                <Clock className="w-6 h-6 text-yellow-600" />
+              </div>
+            </div>
+            <div className="mt-4 flex items-center text-sm text-gray-600">
+              <span>Menunggu persetujuan</span>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-2xl shadow-lg p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">
+                  Sedang Dipinjam
+                </p>
+                <p className="text-3xl font-bold text-gray-900">
+                  {statistikOverview.sedangDipinjam}
+                </p>
+              </div>
+              <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
+                <Users className="w-6 h-6 text-green-600" />
+              </div>
+            </div>
+            <div className="mt-4 flex items-center text-sm text-gray-600">
+              <span>Aktif sekarang</span>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-2xl shadow-lg p-4">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">
@@ -860,6 +953,113 @@ const AdminHomePage = () => {
               {filteredKonfirmasi.length === 0 && (
                 <div className="text-center py-6">
                   <Package className="w-10 h-10 text-gray-400 mx-auto mb-3" />
+                  <p className="text-gray-500 text-sm">
+                    {searchTerm
+                      ? "Tidak ada hasil pencarian"
+                      : "Tidak ada data konfirmasi"}
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Mobile View - Konfirmasi Terbaru */}
+            <div className="md:hidden space-y-4 mt-6">
+              {filteredKonfirmasi.map((item) => (
+                <div
+                  key={item.id}
+                  className="bg-white rounded-2xl shadow-lg p-4 border border-gray-100"
+                >
+                  {/* Header dengan gambar dan info utama */}
+                  <div className="flex items-start space-x-3 mb-3">
+                    <div className="w-16 h-16 bg-gray-200 rounded-lg flex items-center justify-center flex-shrink-0">
+                      {item.barang_gambar ? (
+                        <img
+                          src={item.barang_gambar}
+                          alt={item.barang}
+                          className="w-16 h-16 object-cover rounded-lg"
+                        />
+                      ) : (
+                        <Package className="w-8 h-8 text-gray-400" />
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between mb-1">
+                        <h3 className="font-semibold text-gray-900 text-sm truncate">
+                          {item.nama}
+                        </h3>
+                        <span
+                          className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(
+                            item.status
+                          )}`}
+                        >
+                          {getStatusText(item.status)}
+                        </span>
+                      </div>
+                      <p className="text-xs text-gray-600 mb-1">
+                        NIM: {item.nim}
+                      </p>
+                      <p className="text-sm font-medium text-gray-900 truncate">
+                        {item.barang}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {item.jumlah} unit • {formatRupiah(item.totalHarga)}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Info Tambahan */}
+                  <div className="grid grid-cols-2 gap-2 text-xs text-gray-600 mb-3">
+                    <div className="flex items-center space-x-1">
+                      <Calendar className="w-3 h-3 text-blue-500" />
+                      <span>{item.tanggalPinjam}</span>
+                    </div>
+                    <div className="flex items-center space-x-1">
+                      <Calendar className="w-3 h-3 text-green-500" />
+                      <span>{item.tanggalKembali}</span>
+                    </div>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex justify-between items-center pt-3 border-t border-gray-100">
+                    <div className="flex space-x-2">
+                      <button
+                        onClick={() => handleViewDetails(item)}
+                        className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                      >
+                        <Eye className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => handleContact(item.telepon)}
+                        disabled={!item.telepon}
+                        className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors disabled:opacity-50"
+                      >
+                        <MessageCircle className="w-4 h-4" />
+                      </button>
+                    </div>
+
+                    {item.status === "pending" && (
+                      <div className="flex space-x-2">
+                        <button
+                          onClick={() => handleApprove(item.id)}
+                          className="bg-green-600 text-white px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-green-700 transition-colors"
+                        >
+                          Setujui
+                        </button>
+                        <button
+                          onClick={() => handleReject(item.id)}
+                          className="bg-red-600 text-white px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-red-700 transition-colors"
+                        >
+                          Tolak
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+
+              {filteredKonfirmasi.length === 0 && (
+                <div className="text-center py-8 bg-white rounded-2xl shadow-lg">
+                  <Package className="w-12 h-12 text-gray-400 mx-auto mb-3" />
                   <p className="text-gray-500 text-sm">
                     {searchTerm
                       ? "Tidak ada hasil pencarian"

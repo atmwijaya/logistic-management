@@ -998,6 +998,137 @@ const DaftarPeminjam = () => {
               </tbody>
             </table>
 
+            {/* Mobile View */}
+            <div className="md:hidden space-y-4">
+              {currentItems.map((peminjam) => (
+                <div
+                  key={peminjam.id}
+                  className="bg-white rounded-2xl shadow-lg p-4 border border-gray-100"
+                >
+                  {/* Header dengan gambar dan info utama */}
+                  <div className="flex items-start space-x-3 mb-3">
+                    <div className="w-16 h-16 bg-gray-200 rounded-lg flex items-center justify-center flex-shrink-0">
+                      {peminjam.barang?.gambar ? (
+                        <img
+                          src={peminjam.barang.gambar}
+                          alt={peminjam.barang.nama}
+                          className="w-16 h-16 object-cover rounded-lg"
+                        />
+                      ) : (
+                        <Package className="w-8 h-8 text-gray-400" />
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between mb-1">
+                        <h3 className="font-semibold text-gray-900 text-sm">
+                          {peminjam.nama_lengkap || "-"}
+                        </h3>
+                        <span
+                          className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(
+                            peminjam.status
+                          )}`}
+                        >
+                          {getStatusText(peminjam.status)}
+                        </span>
+                      </div>
+                      <p className="text-xs text-gray-600 mb-1">
+                        NIM: {peminjam.nim || "-"}
+                      </p>
+                      <p className="text-sm font-medium text-gray-900">
+                        {peminjam.barang?.nama || "Barang tidak ditemukan"}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {peminjam.jumlah_pinjam || 0} unit •{" "}
+                        {peminjam.instansi || "-"}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Info Tambahan */}
+                  <div className="grid grid-cols-2 gap-2 text-xs text-gray-600 mb-3">
+                    <div className="flex items-center space-x-1">
+                      <Calendar className="w-3 h-3 text-blue-500" />
+                      <span>{formatTanggal(peminjam.tanggal_mulai)}</span>
+                    </div>
+                    <div className="flex items-center space-x-1">
+                      <Calendar className="w-3 h-3 text-green-500" />
+                      <span>{formatTanggal(peminjam.tanggal_selesai)}</span>
+                    </div>
+                    <div className="col-span-2">
+                      <p className="font-semibold text-gray-900">
+                        {formatRupiah(peminjam.total_biaya)}
+                      </p>
+                      <p className="text-gray-500">
+                        {peminjam.lama_pinjam || 0} hari
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Timeline untuk yang approved */}
+                  {peminjam.status === "approved" && (
+                    <div className="mb-3">
+                      <TimelineDropdown peminjam={peminjam} />
+                    </div>
+                  )}
+
+                  {/* Action Buttons */}
+                  <div className="flex justify-between items-center pt-3 border-t border-gray-100">
+                    <div className="flex space-x-2">
+                      <button
+                        onClick={() => handleInspect(peminjam)}
+                        className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                      >
+                        <Eye className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => handleContact(peminjam.telepon)}
+                        disabled={!peminjam.telepon}
+                        className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors disabled:opacity-50"
+                      >
+                        <MessageCircle className="w-4 h-4" />
+                      </button>
+                    </div>
+
+                    {peminjam.status === "pending" && (
+                      <div className="flex space-x-2">
+                        <button
+                          onClick={() => handleApprove(peminjam.id)}
+                          className="bg-green-600 text-white px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-green-700 transition-colors"
+                        >
+                          Setujui
+                        </button>
+                        <button
+                          onClick={() => handleReject(peminjam.id)}
+                          className="bg-red-600 text-white px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-red-700 transition-colors"
+                        >
+                          Tolak
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Waktu Konfirmasi */}
+                  <div className="mt-2 text-xs text-gray-500">
+                    {formatWaktu(peminjam.created_at)}
+                  </div>
+                </div>
+              ))}
+
+              {currentItems.length === 0 && !loading && (
+                <div className="text-center py-12 bg-white rounded-2xl shadow-lg">
+                  <Package className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+                  <p className="text-gray-500 text-lg mb-2">
+                    Tidak ada data peminjam
+                  </p>
+                  <p className="text-gray-400 text-sm">
+                    {searchTerm || statusFilter !== "semua"
+                      ? "Coba ubah pencarian atau filter"
+                      : "Belum ada peminjaman yang tercatat"}
+                  </p>
+                </div>
+              )}
+            </div>
+
             {currentItems.length === 0 && !loading && (
               <div className="text-center py-12">
                 <Package className="w-12 h-12 text-gray-400 mx-auto mb-4" />
