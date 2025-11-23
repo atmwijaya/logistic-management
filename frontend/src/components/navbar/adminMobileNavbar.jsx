@@ -71,15 +71,13 @@ const AdminMobileNavbar = () => {
             {isOpen ? <X size={24} /> : <Menu size={24} />}
           </button>
         </div>
-      </nav>
 
-      {/* Dropdown Menu */}
-      <div className={`md:hidden fixed inset-x-0 top-16 z-50 transition-all duration-500 ease-in-out ${
-        isOpen ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4 pointer-events-none'
-      }`}>
-        <div className="bg-white shadow-2xl border-t border-blue-200 mx-4 rounded-b-2xl overflow-hidden max-h-80 overflow-y-auto">
+        {/* Dropdown Menu - Sekarang menjadi bagian dari nav */}
+        <div className={`absolute left-0 right-0 bg-white shadow-2xl border-t border-blue-200 transition-all duration-300 ease-in-out overflow-hidden ${
+          isOpen ? 'max-h-96 opacity-100 mt-3' : 'max-h-0 opacity-0'
+        }`}>
           {/* Menu Items */}
-          <div className="py-2">
+          <div className="py-2 max-h-80 overflow-y-auto">
             {navItems.map((item, index) => {
               const Icon = item.icon;
               const isActive = location.pathname === item.path;
@@ -92,8 +90,6 @@ const AdminMobileNavbar = () => {
                     isActive 
                       ? 'bg-blue-50 text-blue-700' 
                       : 'text-gray-700 hover:bg-gray-50'
-                  } ${
-                    isOpen ? 'translate-y-0 opacity-100' : 'translate-y-2 opacity-0'
                   }`}
                   style={{
                     transitionDelay: isOpen ? `${index * 80}ms` : '0ms'
@@ -114,9 +110,7 @@ const AdminMobileNavbar = () => {
             {/* Logout Button */}
             <div
               onClick={() => setShowLogoutModal(true)}
-              className={`flex items-center space-x-3 p-4 border-b border-gray-100 cursor-pointer text-red-600 hover:bg-red-50 transition-all duration-300 ${
-                isOpen ? 'translate-y-0 opacity-100' : 'translate-y-2 opacity-0'
-              }`}
+              className={`flex items-center space-x-3 p-4 border-b border-gray-100 cursor-pointer text-red-600 hover:bg-red-50 transition-all duration-300`}
               style={{
                 transitionDelay: isOpen ? `${navItems.length * 80}ms` : '0ms'
               }}
@@ -133,19 +127,14 @@ const AdminMobileNavbar = () => {
             </div>
           </div>
         </div>
-
-        {/* Backdrop */}
-        {isOpen && (
-          <div 
-            className="fixed inset-0 bg-black bg-opacity-30 -z-10 transition-opacity duration-500"
-            onClick={() => setIsOpen(false)}
-          />
-        )}
-      </div>
+      </nav>
 
       {/* Background overlay untuk mencegah scroll */}
       {isOpen && (
-        <div className="md:hidden fixed inset-0 bg-black bg-opacity-0 z-40" />
+        <div 
+          className="md:hidden fixed inset-0 bg-transparent z-30"
+          onClick={() => setIsOpen(false)}
+        />
       )}
 
       {/* Modal Konfirmasi Logout */}
