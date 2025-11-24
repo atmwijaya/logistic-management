@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ChevronDown, ChevronUp, HelpCircle, Loader2 } from 'lucide-react';
 import faqAPI from '../../api/faqAPI';
-import phoneAPI from '../../api/contactAPI';
+import contactAPI from '../../api/contactAPI';
 
 const FAQItem = ({ question, answer, isOpen, onToggle }) => {
   return (
@@ -111,8 +111,8 @@ const FAQ = () => {
   // Fungsi untuk handle klik tombol Hubungi Kami
   const handleContactClick = async () => {
   try {
-    const response = await phoneAPI.getPhone();
-    const phoneNumber = response.data || ""; 
+    const response = await contactAPI.getContact();
+    const phoneNumber = response.phone || ""; 
 
     const preFilledMessage =
       "Halo, saya ingin bertanya tentang layanan logistik Racana Diponegoro.";

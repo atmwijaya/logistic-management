@@ -132,7 +132,7 @@ const Settings = () => {
         </div>
 
         {loading && (
-          <div className="fixed inset-0 bg-white bg-opacity-50 flex items-center justify-center z-50">
+          <div className="min-h-screen bg-gray-50 p-6 flex items-center justify-center">
             <div className="bg-white p-6 rounded-lg shadow-lg">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
               <p className="mt-4 text-gray-700">Memproses...</p>
