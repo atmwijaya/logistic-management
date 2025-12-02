@@ -20,7 +20,7 @@ export default defineConfig({
         "apple-touch-icon.png",
         "apple-touch-icon-180x180.png",
       ],
-      injectRegister: "false",
+      injectRegister: false,
 
       manifest: {
         name: "Logistic Management System",

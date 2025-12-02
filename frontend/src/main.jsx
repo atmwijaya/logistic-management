@@ -6,6 +6,9 @@ import AdminLayout from "./layout/adminLayout";
 import LoginPage from "./pages/admin/LoginPage";
 import PWABadge from "./PWABadge";
 import "./index.css";
+import { registerSW } from "virtual:pwa-register";
+
+registerSW({ immediate: true });
 
 const ProtectedAdminRoute = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
