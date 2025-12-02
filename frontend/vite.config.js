@@ -19,7 +19,7 @@ export default defineConfig({
         "apple-touch-icon.png",
         "apple-touch-icon-180x180.png",
       ],
-      injectRegister: "auto",
+      injectRegister: "false",
 
       pwaAssets: {
         disabled: false,
@@ -38,12 +38,11 @@ export default defineConfig({
         globPatterns: ["**/*.{js,css,html,svg,png,ico,jpg,jpeg,webp,woff2}"],
         cleanupOutdatedCaches: true,
         clientsClaim: true,
-        skipWaiting: true,
       },
 
       devOptions: {
         enabled: false,
-        navigateFallback: "index.html",
+        navigateFallback: 'index.html',
         suppressWarnings: true,
         type: "module",
       },
