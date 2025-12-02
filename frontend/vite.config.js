@@ -57,7 +57,6 @@ export default defineConfig({
           "**/*.{js,css,html,svg,png,ico,jpg,jpeg,webp,woff2,ttf,eot}",
         ],
         runtimeCaching: [
-          // Cache gambar dari Supabase untuk offline access
           {
             urlPattern:
               /^https:\/\/ispttoyjzbfafmiuhkeu\.supabase\.co\/.*\.(png|jpg|jpeg|webp|gif|svg)/,
@@ -73,7 +72,6 @@ export default defineConfig({
               },
             },
           },
-          // Cache API responses
           {
             urlPattern: /^https:\/\/logistic-backend-nu\.vercel\.app\/api\/.*/,
             handler: "NetworkFirst",
@@ -89,7 +87,6 @@ export default defineConfig({
               },
             },
           },
-          // Cache manifest dan assets
           {
             urlPattern: /^https:\/\/.*\.(js|css|html)$/,
             handler: "StaleWhileRevalidate",
