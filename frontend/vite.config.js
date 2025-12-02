@@ -32,11 +32,6 @@ export default defineConfig({
         description: "Aplikasi manajemen logistik dengan kemampuan offline",
         theme_color: "#ffffff",
         background_color: "#ffffff",
-        display: "standalone",
-        orientation: "portrait",
-        scope: "/",
-        start_url: "/",
-        id: "/",
       },
 
       workbox: {
