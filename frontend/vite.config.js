@@ -22,12 +22,16 @@ export default defineConfig({
       ],
       injectRegister: false,
 
+      pwaAssets: {
+        disabled: false,
+        config: true,
+      },
+
       manifest: {
         name: "Logistic Management System",
         short_name: "LogisticApp",
         description: "Aplikasi manajemen logistik dengan kemampuan offline",
         theme_color: "#ffffff",
-        background_color: "#ffffff",
       },
 
       workbox: {
