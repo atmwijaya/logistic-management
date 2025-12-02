@@ -7,8 +7,9 @@ import tailwindcss from "@tailwindcss/vite";
 export default defineConfig({
   plugins: [
     react(),
+    VitePWA(),
     tailwindcss(),
-    VitePWA({
+    {
       registerType: "autoUpdate",
       includeAssets: [
         "favicon.ico",
@@ -20,11 +21,6 @@ export default defineConfig({
         "apple-touch-icon-180x180.png",
       ],
       injectRegister: "false",
-
-      pwaAssets: {
-        disabled: false,
-        config: true,
-      },
 
       manifest: {
         name: "Logistic Management System",
@@ -42,10 +38,10 @@ export default defineConfig({
 
       devOptions: {
         enabled: false,
-        navigateFallback: 'index.html',
+        navigateFallback: "index.html",
         suppressWarnings: true,
         type: "module",
       },
-    }),
+    },
   ],
 });
