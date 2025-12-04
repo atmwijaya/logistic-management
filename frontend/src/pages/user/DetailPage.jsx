@@ -25,19 +25,16 @@ const DetailPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  // Load data barang detail dari backend
   useEffect(() => {
     const loadBarangDetail = async () => {
       try {
         setLoading(true);
         setError('');
-        
-        // Load detail barang
+
         const response = await katalogAPI.getById(id);
-        console.log('Barang Detail:', response); // Debug log
+        console.log('Barang Detail:', response); 
         setBarangDetail(response);
 
-        // Load related barang (barang dengan kategori yang sama)
         const relatedResponse = await katalogAPI.getAll();
         const filteredRelated = Array.isArray(relatedResponse) 
           ? relatedResponse.filter(item => item.id !== id && item.kategori === response.kategori).slice(0, 3)
@@ -56,7 +53,6 @@ const DetailPage = () => {
     }
   }, [id]);
 
-  // Helper function untuk mendapatkan gambar utama
   const getGambarUtama = (barang) => {
     if (!barang || !barang.gambar || !Array.isArray(barang.gambar)) return null;
     if (barang.gambar.length > 0 && typeof barang.gambar[0] === 'string') {
@@ -65,41 +61,27 @@ const DetailPage = () => {
     return null;
   };
 
-  const toKebabCase = (text) => {
-  return text
-    .toLowerCase()
-    .replace(/[^\w\s-]/g, '')
-    .replace(/[\s_-]+/g, '-')
-    .replace(/^-+|-+$/g, '');
-  };
-
   const handleShare = async (barang, e) => {
   e.stopPropagation();
   try {
     const baseUrl = window.location.origin;
-    const barangSlug = toKebabCase(barang.nama);
-    const shareUrl = `${baseUrl}/barang/${barangSlug}`;
+    const shareUrl = `${baseUrl}/katalog/${barang.id}`;
     const shareData = {
       title: `Pinjam ${barang.nama} - Racana Diponegoro`,
       text: `Lihat ${barang.nama} untuk dipinjam di Racana Diponegoro. ${barang.deskripsi?.substring(0, 100)}...`,
       url: shareUrl
     };
 
-    // Cek apakah Web Share API didukung
     if (navigator.share) {
       await navigator.share(shareData);
     } else {
-      // Fallback: salin ke clipboard
       await navigator.clipboard.writeText(shareUrl);
       alert('Link berhasil disalin ke clipboard!');
     }
   } catch (err) {
     console.error('Error sharing:', err);
-    // Fallback manual jika semua gagal
     const baseUrl = window.location.origin;
-    const barangSlug = toKebabCase(barang.nama);
-    const shareUrl = `${baseUrl}/barang/${barangSlug}`;
-    
+    const shareUrl = `${baseUrl}/katalog/${barang.id}`;
     prompt('Salin link berikut:', shareUrl);
   }
   };
@@ -124,14 +106,12 @@ const DetailPage = () => {
     return status === 'tersedia' ? 'Tersedia' : 'Tidak Tersedia';
   };
 
-  // Fungsi untuk menangani spesifikasi (bisa berupa array of strings atau array of objects)
   const renderSpesifikasi = () => {
     if (!barangDetail.spesifikasi || !Array.isArray(barangDetail.spesifikasi)) {
       return null;
     }
 
     return barangDetail.spesifikasi.map((spec, index) => {
-      // Jika spesifikasi adalah string langsung
       if (typeof spec === 'string') {
         return (
           <div key={index} className="flex items-center space-x-3">
@@ -141,7 +121,6 @@ const DetailPage = () => {
         );
       }
       
-      // Jika spesifikasi adalah object dengan properti 'nama' dan 'nilai'
       if (spec && typeof spec === 'object' && spec.nama && spec.nilai) {
         return (
           <div key={spec.id || index} className="flex items-center space-x-3">
@@ -153,7 +132,6 @@ const DetailPage = () => {
         );
       }
       
-      // Jika spesifikasi adalah object dengan properti lain
       if (spec && typeof spec === 'object') {
         return (
           <div key={index} className="flex items-center space-x-3">
@@ -169,7 +147,6 @@ const DetailPage = () => {
     });
   };
 
-  // Loading state
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-8 flex items-center justify-center">
@@ -181,7 +158,6 @@ const DetailPage = () => {
     );
   }
 
-  // Error state
   if (error || !barangDetail) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-8">

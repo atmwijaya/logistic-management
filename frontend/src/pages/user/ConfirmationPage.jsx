@@ -309,7 +309,6 @@ const ConfirmationPage = () => {
         setSubmissionTime(new Date().toLocaleString("id-ID"));
         setIsSubmitted(true);
 
-        // Buka WhatsApp di tab baru
         window.open(whatsappUrl, "_blank");
       } else {
         throw new Error(result.message || "Gagal menyimpan data peminjaman");
@@ -325,33 +324,25 @@ const ConfirmationPage = () => {
     }
   };
 
-  // Set tanggal minimum (hari ini)
   const today = new Date().toISOString().split("T")[0];
 
-  // Get image URL dengan error handling
   const getImageUrl = () => {
     try {
       if (!selectedBarang || !selectedBarang.gambar) {
         return "/placeholder-image.jpg";
       }
-
-      // Handle berbagai kemungkinan struktur gambar
       if (
         Array.isArray(selectedBarang.gambar) &&
         selectedBarang.gambar.length > 0
       ) {
         const firstImage = selectedBarang.gambar[0];
-
-        // Jika gambar adalah object dengan property url
         if (typeof firstImage === "object" && firstImage.url) {
           return firstImage.url;
         }
-        // Jika gambar adalah string URL langsung
         else if (typeof firstImage === "string") {
           return firstImage;
         }
       }
-      // Jika gambar adalah string tunggal
       else if (typeof selectedBarang.gambar === "string") {
         return selectedBarang.gambar;
       }
@@ -363,7 +354,6 @@ const ConfirmationPage = () => {
     }
   };
 
-  // Cek apakah form valid untuk submit
   const isFormValid = () => {
     return (
       formData.namaLengkap &&
@@ -377,7 +367,6 @@ const ConfirmationPage = () => {
     );
   };
 
-  // Safe number formatting
   const formatRupiah = (number) => {
     try {
       return new Intl.NumberFormat("id-ID").format(Number(number) || 0);
@@ -387,7 +376,6 @@ const ConfirmationPage = () => {
     }
   };
 
-  // Loading state
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-8 flex items-center justify-center">
@@ -399,7 +387,6 @@ const ConfirmationPage = () => {
     );
   }
 
-  // Error state
   if (error && !selectedBarang) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-8">
@@ -432,7 +419,6 @@ const ConfirmationPage = () => {
     );
   }
 
-  // Tampilan setelah submit
   if (isSubmitted) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-8">

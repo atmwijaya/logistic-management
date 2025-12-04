@@ -91,41 +91,27 @@ const KatalogPage = () => {
     return null;
   };
 
-  const toKebabCase = (text) => {
-  return text
-    .toLowerCase()
-    .replace(/[^\w\s-]/g, '') // Hapus karakter khusus
-    .replace(/[\s_-]+/g, '-') // Ganti spasi dan underscore dengan dash
-    .replace(/^-+|-+$/g, ''); // Hapus dash di awal dan akhir
-  };
-
   const handleShare = async (barang, e) => {
   e.stopPropagation();
   try {
     const baseUrl = window.location.origin;
-    const barangSlug = toKebabCase(barang.nama);
-    const shareUrl = `${baseUrl}/barang/${barangSlug}`;
+    const shareUrl = `${baseUrl}/katalog/${barang.id}`;
     const shareData = {
       title: `Pinjam ${barang.nama} - Racana Diponegoro`,
       text: `Lihat ${barang.nama} untuk dipinjam di Racana Diponegoro. ${barang.deskripsi?.substring(0, 100)}...`,
       url: shareUrl
     };
 
-    // Cek apakah Web Share API didukung
     if (navigator.share) {
       await navigator.share(shareData);
     } else {
-      // Fallback: salin ke clipboard
       await navigator.clipboard.writeText(shareUrl);
       alert('Link berhasil disalin ke clipboard!');
     }
   } catch (err) {
     console.error('Error sharing:', err);
-    // Fallback manual jika semua gagal
     const baseUrl = window.location.origin;
-    const barangSlug = toKebabCase(barang.nama);
-    const shareUrl = `${baseUrl}/barang/${barangSlug}`;
-    
+    const shareUrl = `${baseUrl}/katalog/${barang.id}`;
     prompt('Salin link berikut:', shareUrl);
   }
   };
