@@ -72,14 +72,6 @@ const DetailAdminPage = () => {
     return null;
   };
 
-  const toKebabCase = (text) => {
-    return text
-      .toLowerCase()
-      .replace(/[^\w\s-]/g, "")
-      .replace(/[\s_-]+/g, "-")
-      .replace(/^-+|-+$/g, "");
-  };
-
   const handleShare = async (e) => {
     e.stopPropagation();
 
@@ -92,7 +84,7 @@ const DetailAdminPage = () => {
     try {
       const baseUrl = window.location.origin;
       const barangSlug = toKebabCase(barangDetail.nama);
-      const shareUrl = `${baseUrl}/barang/${barangSlug}`;
+      const shareUrl = `${baseUrl}/katalog/${barang.id}`;
       const shareData = {
         title: `Pinjam ${barangDetail.nama} - Racana Diponegoro`,
         text: `Lihat ${
@@ -104,20 +96,16 @@ const DetailAdminPage = () => {
         url: shareUrl,
       };
 
-      // Cek apakah Web Share API didukung
       if (navigator.share) {
         await navigator.share(shareData);
       } else {
-        // Fallback: salin ke clipboard
         await navigator.clipboard.writeText(shareUrl);
         alert("Link berhasil disalin ke clipboard!");
       }
     } catch (err) {
       console.error("Error sharing:", err);
-      // Fallback manual jika semua gagal
       const baseUrl = window.location.origin;
-      const barangSlug = toKebabCase(barangDetail.nama);
-      const shareUrl = `${baseUrl}/barang/${barangSlug}`;
+      const shareUrl = `${baseUrl}/katalog/${barang.id}`;
 
       prompt("Salin link berikut:", shareUrl);
     }
@@ -180,7 +168,6 @@ const DetailAdminPage = () => {
     }
 
     return barangDetail.spesifikasi.map((spec, index) => {
-      // Jika spesifikasi adalah string langsung
       if (typeof spec === "string") {
         return (
           <div key={index} className="flex items-center space-x-3">
@@ -190,7 +177,6 @@ const DetailAdminPage = () => {
         );
       }
 
-      // Jika spesifikasi adalah object dengan properti 'nama' dan 'nilai'
       if (spec && typeof spec === "object" && spec.nama && spec.nilai) {
         return (
           <div key={spec.id || index} className="flex items-center space-x-3">
@@ -202,7 +188,6 @@ const DetailAdminPage = () => {
         );
       }
 
-      // Jika spesifikasi adalah object dengan properti lain
       if (spec && typeof spec === "object") {
         return (
           <div key={index} className="flex items-center space-x-3">

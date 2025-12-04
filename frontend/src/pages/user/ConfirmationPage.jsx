@@ -31,7 +31,7 @@ const ConfirmationPage = () => {
     nim: "",
     jurusan: "",
     instansi: "",
-    telepon: "", // Hanya bagian setelah +62
+    telepon: "",
     jumlahPinjam: 1,
     tanggalMulai: "",
     tanggalSelesai: "",
@@ -43,6 +43,8 @@ const ConfirmationPage = () => {
   const [selectedBarang, setSelectedBarang] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [namaError, setNamaError] = useState("");
+  const [nimError, setNimError] = useState("");
   const [phoneError, setPhoneError] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
@@ -112,7 +114,6 @@ const ConfirmationPage = () => {
     }
   };
 
-  // Hitung total harga dengan error handling
   const calculateTotalHarga = () => {
     try {
       if (!selectedBarang || !selectedBarang.harga) return 0;
@@ -126,31 +127,54 @@ const ConfirmationPage = () => {
     }
   };
 
-  // Validasi nomor telepon (hanya bagian setelah +62)
+  const validateNamaLengkap = (nama) => {
+    if (!nama) {
+      return "Nama lengkap wajib diisi";
+    }
+    if (!/^[a-zA-Z\s'.-\u00C0-\u024F\u1E00-\u1EFF]*$/.test(nama)) {
+      return "Hanya huruf, spasi, dan karakter tertentu yang diperbolehkan";
+    }
+    if (nama.length < 2) {
+      return "Nama terlalu pendek. Minimal 2 karakter.";
+    }
+    if (nama.length > 100) {
+      return "Nama terlalu panjang. Maksimal 100 karakter.";
+    }
+    return "";
+  };
+
+  const validateNIM = (nim) => {
+    if (!nim) {
+      return "NIM wajib diisi";
+    }
+    if (!/^[A-Z0-9]+$/.test(nim)) {
+      return "Hanya huruf kapital dan angka yang diperbolehkan";
+    }
+    if (nim.length < 3) {
+      return "NIM terlalu pendek. Minimal 3 karakter.";
+    }
+    if (nim.length > 15) {
+      return "NIM terlalu panjang. Maksimal 15 karakter.";
+    }
+    return "";
+  };
+
   const validatePhoneNumber = (phone) => {
     if (!phone) {
       return "Nomor telepon wajib diisi";
     }
-
-    // Hanya angka yang diperbolehkan
     if (!/^\d+$/.test(phone)) {
       return "Hanya angka yang diperbolehkan";
     }
-
-    // Panjang minimal 9 digit, maksimal 15 digit (setelah +62)
     if (phone.length < 9) {
       return "Nomor telepon terlalu pendek. Minimal 9 angka setelah +62";
     }
-
     if (phone.length > 15) {
       return "Nomor telepon terlalu panjang. Maksimal 15 angka setelah +62";
     }
-
-    // Validasi format Indonesia (harus dimulai dengan 8)
     if (!phone.startsWith("8")) {
       return "Nomor Indonesia harus dimulai dengan angka 8";
     }
-
     return "";
   };
 
@@ -160,13 +184,20 @@ const ConfirmationPage = () => {
       ...prev,
       [name]: value,
     }));
+    if (name === "namaLengkap") {
+      setNamaError(validateNamaLengkap(value));
+    } else if (name === "nim") {
+      const uppercaseValue = value.toUpperCase();
+      setFormData((prev) => ({
+        ...prev,
+        [name]: uppercaseValue,
+      }));
+      setNimError(validateNIM(uppercaseValue));
+    }
   };
 
-  // Handle change untuk telepon (hanya menerima angka)
   const handlePhoneChange = (e) => {
     const value = e.target.value;
-
-    // Hanya menerima angka
     const numericValue = value.replace(/[^\d]/g, "");
 
     setFormData((prev) => ({
@@ -174,28 +205,22 @@ const ConfirmationPage = () => {
       telepon: numericValue,
     }));
 
-    // Validasi real-time
     const validationError = validatePhoneNumber(numericValue);
     setPhoneError(validationError);
   };
 
-  // Format telepon lengkap (gabungan +62 dengan input user)
   const getFullPhoneNumber = () => {
     return `+62${formData.telepon}`;
   };
 
-  // Generate options untuk jumlah pinjam dengan safe array length
   const generateJumlahOptions = () => {
     try {
       if (!selectedBarang) return [];
-
       const stok = Number(selectedBarang.stok) || 0;
       const maksPeminjaman = Number(selectedBarang.maks_peminjaman) || 10;
 
       if (stok <= 0) return [];
-
-      // Gunakan batas yang aman
-      const maxItems = Math.min(stok, maksPeminjaman, 20); // Batasi maksimal 20
+      const maxItems = Math.min(stok, maksPeminjaman, 20);
       const options = [];
 
       for (let i = 1; i <= maxItems; i++) {
@@ -225,9 +250,17 @@ const ConfirmationPage = () => {
       setError("Data barang tidak tersedia");
       return;
     }
-
-    // Validasi final sebelum submit
+    const namaValidationError = validateNamaLengkap(formData.namaLengkap);
+    const nimValidationError = validateNIM(formData.nim);
     const phoneValidationError = validatePhoneNumber(formData.telepon);
+    if (namaValidationError) {
+      setNamaError(namaValidationError);
+      return;
+    }
+    if (nimValidationError) {
+      setNimError(nimValidationError);
+      return;
+    }
     if (phoneValidationError) {
       setPhoneError(phoneValidationError);
       return;
@@ -338,12 +371,10 @@ const ConfirmationPage = () => {
         const firstImage = selectedBarang.gambar[0];
         if (typeof firstImage === "object" && firstImage.url) {
           return firstImage.url;
-        }
-        else if (typeof firstImage === "string") {
+        } else if (typeof firstImage === "string") {
           return firstImage;
         }
-      }
-      else if (typeof selectedBarang.gambar === "string") {
+      } else if (typeof selectedBarang.gambar === "string") {
         return selectedBarang.gambar;
       }
 
@@ -363,6 +394,8 @@ const ConfirmationPage = () => {
       formData.telepon &&
       formData.tanggalMulai &&
       formData.tanggalSelesai &&
+      !namaError &&
+      !nimError &&
       !phoneError
     );
   };
@@ -687,9 +720,23 @@ const ConfirmationPage = () => {
                     value={formData.namaLengkap}
                     onChange={handleChange}
                     required
-                    className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300"
+                    className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 ${
+                      namaError
+                        ? "border-red-300 bg-red-50"
+                        : "border-slate-300"
+                    }`}
                     placeholder="Masukkan nama lengkap"
                   />
+                  {namaError ? (
+                    <p className="text-red-500 text-xs mt-2 flex items-center space-x-1">
+                      <AlertCircle className="w-3 h-3" />
+                      <span>{namaError}</span>
+                    </p>
+                  ) : (
+                    <p className="text-slate-500 text-xs mt-2">
+                      Hanya huruf, spasi, titik (.), apostrof ('), dan strip (-)
+                    </p>
+                  )}
                 </div>
 
                 <div>
@@ -702,12 +749,22 @@ const ConfirmationPage = () => {
                     value={formData.nim}
                     onChange={handleChange}
                     required
-                    className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300"
-                    placeholder="Contoh: 1234567890"
+                    className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 ${
+                      nimError ? "border-red-300 bg-red-50" : "border-slate-300"
+                    }`}
+                    placeholder="Contoh: 1234567890 atau AB123456"
                   />
-                  <p className="text-xs text-slate-500 mt-2">
-                    Masukkan NIM tanpa huruf
-                  </p>
+                  {nimError ? (
+                    <p className="text-red-500 text-xs mt-2 flex items-center space-x-1">
+                      <AlertCircle className="w-3 h-3" />
+                      <span>{nimError}</span>
+                    </p>
+                  ) : (
+                    <p className="text-slate-500 text-xs mt-2">
+                      Hanya angka dan huruf kapital. Contoh: 1234567890 atau
+                      A12345B
+                    </p>
+                  )}
                 </div>
 
                 <div>

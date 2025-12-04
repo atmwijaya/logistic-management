@@ -39,19 +39,14 @@ const EditKatalogPage = () => {
       try {
         setIsLoading(true);
         const response = await katalogAPI.getById(id);
-        
-        console.log('📦 Full API Response:', response); // Debug log
-        
-        // Cek struktur response yang sebenarnya
+        console.log('📦 Full API Response:', response); 
         const barang = response.data || response;
-        
-        console.log('🔍 Barang data:', barang); // Debug log
+        console.log('🔍 Barang data:', barang);
         
         if (!barang) {
           throw new Error('Data barang tidak ditemukan');
         }
 
-        // Set form data dengan validasi yang lebih ketat
         setFormData({
           nama: barang.nama || '',
           kategori: barang.kategori || 'outdoor',
